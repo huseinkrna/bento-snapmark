@@ -37,13 +37,13 @@
         canvas {
             display: none;
         }
-        /* Overlay utama sesuai desain */
+        /* Overlay UI (frame) */
         .overlay-top {
             position: absolute;
             top: 0;
             left: 0;
             right: 0;
-            background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
+            background: linear-gradient(to bottom, rgba(0,0,0,0.6), transparent);
             padding: 20px 16px 40px 16px;
             z-index: 10;
             color: white;
@@ -74,27 +74,14 @@
         }
         .address-line {
             margin-bottom: 2px;
+            line-height: 1.3;
+            word-break: break-word;
         }
         .coordinates {
             font-family: monospace;
             font-size: 11px;
             margin-top: 4px;
             opacity: 0.9;
-        }
-        .brand-watermark {
-            position: absolute;
-            bottom: 16px;
-            left: 16px;
-            z-index: 20;
-            background: rgba(0,0,0,0.5);
-            backdrop-filter: blur(4px);
-            padding: 4px 12px;
-            border-radius: 40px;
-            font-size: 11px;
-            font-weight: 600;
-            color: #ffd966;
-            pointer-events: none;
-            font-family: monospace;
         }
         /* Kontrol bawah */
         .controls {
@@ -126,6 +113,8 @@
             display: flex;
             gap: 6px;
             flex-wrap: wrap;
+            max-width: 220px;
+            overflow-x: auto;
         }
         .zoom-btn {
             background: #3a3a3a;
@@ -141,10 +130,6 @@
         }
         .zoom-btn.active {
             background: #ff5722;
-        }
-        .zoom-btn.disabled {
-            opacity: 0.4;
-            pointer-events: none;
         }
         .timer-group {
             background: #222;
@@ -213,7 +198,6 @@
         .mode-btn.active {
             background: #2e7d32;
         }
-        /* Countdown */
         .countdown {
             position: absolute;
             top: 50%;
@@ -229,7 +213,30 @@
             z-index: 30;
             font-family: monospace;
         }
-        /* Modal Preview */
+        .recording-indicator {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.7);
+            color: #ff4444;
+            padding: 8px 16px;
+            border-radius: 40px;
+            font-family: monospace;
+            font-size: 18px;
+            font-weight: bold;
+            z-index: 25;
+            backdrop-filter: blur(4px);
+            pointer-events: none;
+        }
+        .info-banner {
+            background: #ff9800;
+            color: black;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            margin-top: 6px;
+            text-align: center;
+        }
         .modal {
             position: fixed;
             top: 0;
@@ -272,7 +279,6 @@
         }
         .share-btn { background: #25D366; color: white; }
         .retake-btn { background: #555; color: white; }
-        /* History Panel */
         .history-panel {
             position: fixed;
             bottom: 0;
@@ -319,26 +325,12 @@
             border-radius: 30px;
             cursor: pointer;
         }
-        .info-banner {
-            background: #ff9800;
-            color: black;
-            padding: 8px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 500;
-            margin-bottom: 16px;
-            text-align: center;
-        }
         .hidden {
             display: none !important;
         }
-        /* Aksesibilitas */
         button:focus-visible {
             outline: 2px solid #ffaa00;
             outline-offset: 2px;
-        }
-        .sr-only {
-            position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden;
         }
     </style>
 </head>
@@ -347,7 +339,7 @@
     <video id="video" autoplay playsinline muted></video>
     <canvas id="canvas"></canvas>
 
-    <!-- Overlay atas (desain ala gambar 3) -->
+    <!-- Overlay UI (frame) -->
     <div class="overlay-top">
         <div class="datetime-large" id="largeTime">--:--</div>
         <div class="day-date" id="dayDate">--, --/--/----</div>
@@ -356,7 +348,8 @@
             <div class="coordinates" id="coordDisplay">--</div>
         </div>
     </div>
-    <div class="brand-watermark" id="brandWatermark">☕ BENTO COFFEE | Bento SnapMark V1.0/2.6.26 B</div>
+
+    <div id="recordingTimer" class="recording-indicator hidden">00:00</div>
 
     <div class="controls">
         <div class="toolbar-row">
@@ -364,9 +357,7 @@
                 <button id="modePhoto" class="mode-btn active" aria-label="Mode Foto">📸 FOTO</button>
                 <button id="modeVideo" class="mode-btn" aria-label="Mode Video">🎥 VIDEO</button>
             </div>
-            <div class="zoom-group" id="zoomGroup">
-                <!-- Tombol zoom dinamis akan diisi JS -->
-            </div>
+            <div class="zoom-group" id="zoomGroup"></div>
             <button id="historyBtn" class="icon-btn" aria-label="Riwayat">📁</button>
             <button id="switchCam" class="icon-btn" aria-label="Ganti Kamera">🔄</button>
         </div>
@@ -381,13 +372,11 @@
                 </select>
             </div>
             <button id="captureBtn" class="capture-btn" aria-label="Ambil Foto/Video">📸</button>
-            <div style="width: 44px;"></div> <!-- spacer -->
+            <div style="width: 44px;"></div>
         </div>
     </div>
 
     <div id="countdownOverlay" class="countdown hidden">3</div>
-
-    <!-- Modal Preview -->
     <div id="previewModal" class="modal hidden">
         <div class="modal-content">
             <div id="previewMedia"></div>
@@ -397,503 +386,527 @@
             </div>
         </div>
     </div>
-
-    <!-- History Panel -->
     <div id="historyPanel" class="history-panel hidden">
         <div class="history-header">
             <span>📸 HISTORY (MAX 50 FOTO/VIDEO)</span>
             <button id="closeHistory" class="close-history">TUTUP</button>
         </div>
-        <div class="info-banner">
-            ⚠️ Foto/video tersimpan lokal di HP. Hanya 50 terakhir. Lebih lama otomatis terhapus.
-        </div>
+        <div class="info-banner">⚠️ Foto/video tersimpan lokal di HP. Hanya 50 terakhir. Lebih lama otomatis terhapus.</div>
         <div id="historyGrid" class="history-grid"></div>
     </div>
 </div>
 
 <script>
-    // ==================== DOM Elements ====================
-    const video = document.getElementById('video');
-    const canvas = document.getElementById('canvas');
-    const largeTimeSpan = document.getElementById('largeTime');
-    const dayDateSpan = document.getElementById('dayDate');
-    const fullAddressDiv = document.getElementById('fullAddress');
-    const coordDisplaySpan = document.getElementById('coordDisplay');
-    const modePhotoBtn = document.getElementById('modePhoto');
-    const modeVideoBtn = document.getElementById('modeVideo');
-    const captureBtn = document.getElementById('captureBtn');
-    const switchCamBtn = document.getElementById('switchCam');
-    const timerSelect = document.getElementById('timerSelect');
-    const countdownDiv = document.getElementById('countdownOverlay');
-    const previewModal = document.getElementById('previewModal');
-    const previewMedia = document.getElementById('previewMedia');
-    const shareBtn = document.getElementById('shareBtn');
-    const retakeBtn = document.getElementById('retakeBtn');
-    const historyBtn = document.getElementById('historyBtn');
-    const historyPanel = document.getElementById('historyPanel');
-    const historyGrid = document.getElementById('historyGrid');
-    const closeHistory = document.getElementById('closeHistory');
-    const zoomGroup = document.getElementById('zoomGroup');
-    const brandWatermarkSpan = document.getElementById('brandWatermark');
+    (function(){
+        // ==================== DOM Elements ====================
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const largeTimeSpan = document.getElementById('largeTime');
+        const dayDateSpan = document.getElementById('dayDate');
+        const fullAddressDiv = document.getElementById('fullAddress');
+        const coordDisplaySpan = document.getElementById('coordDisplay');
+        const modePhotoBtn = document.getElementById('modePhoto');
+        const modeVideoBtn = document.getElementById('modeVideo');
+        const captureBtn = document.getElementById('captureBtn');
+        const switchCamBtn = document.getElementById('switchCam');
+        const timerSelect = document.getElementById('timerSelect');
+        const countdownDiv = document.getElementById('countdownOverlay');
+        const previewModal = document.getElementById('previewModal');
+        const previewMedia = document.getElementById('previewMedia');
+        const shareBtn = document.getElementById('shareBtn');
+        const retakeBtn = document.getElementById('retakeBtn');
+        const historyBtn = document.getElementById('historyBtn');
+        const historyPanel = document.getElementById('historyPanel');
+        const historyGrid = document.getElementById('historyGrid');
+        const closeHistory = document.getElementById('closeHistory');
+        const zoomGroup = document.getElementById('zoomGroup');
+        const recordingTimerDiv = document.getElementById('recordingTimer');
 
-    // ==================== State ====================
-    let stream = null;
-    let currentFacing = 'environment';
-    let currentMode = 'photo';
-    let isRecording = false;
-    let mediaRecorder = null;
-    let recordedChunks = [];
-    let photoBlob = null;
-    let videoBlob = null;
-    let currentUniqueCode = '';
-    let currentLocation = {
-        fullAddress: '',
-        lat: 0,
-        lng: 0,
-        latDMS: '',
-        lngDMS: ''
-    };
-    let zoomLevel = 1;
-    let zoomCapabilities = { min: 1, max: 1, step: 0 };
-    let availableZoomValues = [1];
+        // ==================== State ====================
+        let stream = null;
+        let currentFacing = 'environment';
+        let currentMode = 'photo';
+        let isRecording = false;
+        let mediaRecorder = null;
+        let recordedChunks = [];
+        let photoBlob = null;
+        let videoBlob = null;
+        let currentUniqueCode = '';
+        let currentLocation = {
+            fullAddress: '',
+            lat: 0,
+            lng: 0,
+            latDMS: '',
+            lngDMS: ''
+        };
+        let zoomLevel = 1;
+        let zoomCapabilities = { min: 1, max: 1, step: 0 };
+        let availableZoomValues = [1];
+        let videoRecordStartTime = 0;
+        let videoRecordInterval = null;
+        let watermarkImage = null;
 
-    // Update jam & hari besar
-    function updateDateTimeUI() {
-        const now = new Date();
-        const hours = now.getHours().toString().padStart(2,'0');
-        const minutes = now.getMinutes().toString().padStart(2,'0');
-        largeTimeSpan.textContent = `${hours}.${minutes}`;
-        const days = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
-        const dayName = days[now.getDay()];
-        const dateStr = now.toLocaleDateString('id-ID', { year:'numeric', month:'2-digit', day:'2-digit' }).replace(/\//g,'/');
-        dayDateSpan.textContent = `${dayName}, ${dateStr}`;
-        // Update watermark versi dengan tanggal dinamis
-        const today = now.toLocaleDateString('id-ID').replace(/\//g,'.');
-        brandWatermarkSpan.textContent = `☕ BENTO COFFEE | Bento SnapMark V1.0/${today} B`;
-    }
-    setInterval(updateDateTimeUI, 1000);
-    updateDateTimeUI();
-
-    // ==================== Geolocation + Reverse Geocoding (Lengkap) ====================
-    async function getLocationAndAddress() {
-        if (!navigator.geolocation) {
-            fullAddressDiv.textContent = "GPS tidak support";
-            return;
+        // ==================== Watermark Image Load ====================
+        function loadWatermarkImage() {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => {
+                    watermarkImage = img;
+                    resolve(img);
+                };
+                img.onerror = () => {
+                    console.warn("Gambar watermark tidak ditemukan, lanjut tanpa gambar");
+                    watermarkImage = null;
+                    resolve(null);
+                };
+                img.src = 'bento-logo.png'; // Ganti dengan nama file watermark Anda
+            });
         }
-        navigator.geolocation.getCurrentPosition(async (pos) => {
-            const lat = pos.coords.latitude;
-            const lng = pos.coords.longitude;
-            currentLocation.lat = lat;
-            currentLocation.lng = lng;
-            // Format koordinat DMS
-            currentLocation.latDMS = toDMS(lat, 'lat');
-            currentLocation.lngDMS = toDMS(lng, 'lng');
-            coordDisplaySpan.textContent = `Koordinat : ${currentLocation.latDMS}, ${currentLocation.lngDMS}`;
-            
-            // Reverse geocoding dengan Nominatim
-            try {
-                const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`);
-                const data = await res.json();
-                const addr = data.address;
-                if (addr) {
-                    const road = addr.road || addr.pedestrian || '';
-                    const suburb = addr.suburb || addr.village || addr.neighbourhood || '';
-                    const city = addr.city || addr.town || '';
-                    const county = addr.county || '';
-                    const state = addr.state || addr.province || '';
-                    // Bangun alamat lengkap: Jalan, Kelurahan, Kecamatan, Kabupaten, Provinsi
-                    let full = '';
-                    if (road) full += `${road}`;
-                    if (suburb) full += `, Kelurahan ${suburb}`;
-                    if (city) full += `, Kecamatan ${city}`;
-                    if (county) full += `, Kabupaten ${county}`;
-                    if (state) full += `, ${state}`;
-                    fullAddressDiv.textContent = full || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+
+        // ==================== Update UI Waktu ====================
+        function updateDateTimeUI() {
+            const now = new Date();
+            const hours = now.getHours().toString().padStart(2,'0');
+            const minutes = now.getMinutes().toString().padStart(2,'0');
+            largeTimeSpan.textContent = `${hours}.${minutes}`;
+            const days = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+            const dayName = days[now.getDay()];
+            const dateStr = now.toLocaleDateString('id-ID', { year:'numeric', month:'2-digit', day:'2-digit' }).replace(/\//g,'/');
+            dayDateSpan.textContent = `${dayName}, ${dateStr}`;
+        }
+        setInterval(updateDateTimeUI, 1000);
+        updateDateTimeUI();
+
+        // ==================== Geolocation & Reverse Geocoding (Akurat) ====================
+        function toDMS(coord, type) {
+            const absolute = Math.abs(coord);
+            const degrees = Math.floor(absolute);
+            const minutesNotTrunc = (absolute - degrees) * 60;
+            const minutes = Math.floor(minutesNotTrunc);
+            const seconds = ((minutesNotTrunc - minutes) * 60).toFixed(1);
+            const direction = (type === 'lat') ? (coord >= 0 ? 'N' : 'S') : (coord >= 0 ? 'E' : 'W');
+            return `${degrees}°${minutes}'${seconds}"${direction}`;
+        }
+
+        async function getLocationAndAddress() {
+            if (!navigator.geolocation) {
+                fullAddressDiv.textContent = "GPS tidak support";
+                return;
+            }
+            navigator.geolocation.getCurrentPosition(async (pos) => {
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
+                currentLocation.lat = lat;
+                currentLocation.lng = lng;
+                currentLocation.latDMS = toDMS(lat, 'lat');
+                currentLocation.lngDMS = toDMS(lng, 'lng');
+                coordDisplaySpan.textContent = `Koordinat : ${currentLocation.latDMS}, ${currentLocation.lngDMS}`;
+                try {
+                    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&accept-language=id`);
+                    const data = await res.json();
+                    let full = data.display_name || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+                    // Potong jika terlalu panjang? biarkan wrap
+                    fullAddressDiv.textContent = full;
                     currentLocation.fullAddress = full;
-                } else {
+                } catch (e) {
                     fullAddressDiv.textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
                     currentLocation.fullAddress = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
                 }
-            } catch (e) {
-                fullAddressDiv.textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-                currentLocation.fullAddress = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-            }
-        }, (err) => {
-            console.warn(err);
-            fullAddressDiv.textContent = "Izin lokasi ditolak";
-            coordDisplaySpan.textContent = "Koordinat tidak tersedia";
-        });
-    }
-    
-    function toDMS(coord, type) {
-        const absolute = Math.abs(coord);
-        const degrees = Math.floor(absolute);
-        const minutesNotTrunc = (absolute - degrees) * 60;
-        const minutes = Math.floor(minutesNotTrunc);
-        const seconds = ((minutesNotTrunc - minutes) * 60).toFixed(1);
-        let direction = '';
-        if (type === 'lat') direction = coord >= 0 ? 'N' : 'S';
-        else direction = coord >= 0 ? 'E' : 'W';
-        return `${degrees}°${minutes}'${seconds}"${direction}`;
-    }
-    
-    getLocationAndAddress();
+            }, (err) => {
+                console.warn(err);
+                fullAddressDiv.textContent = "Izin lokasi ditolak";
+                coordDisplaySpan.textContent = "Koordinat tidak tersedia";
+            });
+        }
+        getLocationAndAddress();
 
-    // Generate random unique code
-    function generateUniqueCode() {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-        let code = '';
-        for (let i = 0; i < 8; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
-        currentUniqueCode = code;
-        return code;
-    }
+        // ==================== Generate Unique Code ====================
+        function generateUniqueCode() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let code = '';
+            for (let i = 0; i < 8; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+            currentUniqueCode = code;
+            return code;
+        }
 
-    // ==================== Kamera & Zoom Dinamis ====================
-    async function initCamera(facingMode) {
-        if (stream) stream.getTracks().forEach(t => t.stop());
-        try {
-            const constraints = {
-                video: { facingMode: { exact: facingMode }, zoom: zoomLevel }
-            };
-            stream = await navigator.mediaDevices.getUserMedia(constraints);
-            video.srcObject = stream;
-            await video.play();
-            currentFacing = facingMode;
-            const track = stream.getVideoTracks()[0];
-            const caps = track.getCapabilities();
-            if (caps.zoom) {
-                zoomCapabilities = { min: caps.zoom.min, max: caps.zoom.max, step: caps.zoom.step };
-                // Generate tombol zoom: default nilai umum 0.5,1,2,3,4,8 dst yang dalam range
-                const presets = [0.5, 1, 2, 3, 4, 5, 6, 8, 10];
-                availableZoomValues = presets.filter(v => v >= zoomCapabilities.min && v <= zoomCapabilities.max);
-                if (availableZoomValues.length === 0) availableZoomValues = [1];
-                renderZoomButtons();
-            } else {
-                zoomGroup.innerHTML = '<span style="color:#aaa; font-size:12px;">Zoom tidak support</span>';
-            }
-        } catch (err) {
-            const fallback = await navigator.mediaDevices.getUserMedia({ video: true });
-            stream = fallback;
-            video.srcObject = fallback;
-            await video.play();
-        }
-    }
-    
-    function renderZoomButtons() {
-        zoomGroup.innerHTML = '';
-        for (let val of availableZoomValues) {
-            const btn = document.createElement('button');
-            btn.className = `zoom-btn ${val === zoomLevel ? 'active' : ''}`;
-            btn.textContent = `${val}x`;
-            btn.dataset.zoom = val;
-            btn.onclick = () => setZoom(val);
-            zoomGroup.appendChild(btn);
-        }
-    }
-    
-    async function setZoom(val) {
-        if (!stream) return;
-        const track = stream.getVideoTracks()[0];
-        if (track && track.getCapabilities().zoom) {
-            await track.applyConstraints({ advanced: [{ zoom: val }] });
-            zoomLevel = val;
-            document.querySelectorAll('.zoom-btn').forEach(btn => btn.classList.remove('active'));
-            const activeBtn = [...document.querySelectorAll('.zoom-btn')].find(b => parseFloat(b.dataset.zoom) === val);
-            if (activeBtn) activeBtn.classList.add('active');
-        }
-    }
-    
-    function switchCamera() {
-        const newFacing = currentFacing === 'environment' ? 'user' : 'environment';
-        initCamera(newFacing);
-    }
-    
-    // ==================== Capture Photo with Full Watermark ====================
-    async function capturePhoto() {
-        if (!video.videoWidth) { alert("Kamera belum siap"); return; }
-        const ctx = canvas.getContext('2d');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        
-        const now = new Date();
-        const hari = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'][now.getDay()];
-        const tanggal = now.toLocaleDateString('id-ID', { year:'numeric', month:'2-digit', day:'2-digit' }).replace(/\//g,'/');
-        const jamMenit = now.toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
-        const locationText = currentLocation.fullAddress || "Lokasi tidak diketahui";
-        const coordText = `${currentLocation.latDMS}, ${currentLocation.lngDMS}`;
-        const unique = generateUniqueCode();
-        const brandText = "BENTO COFFEE | Bento SnapMark V1.0/2.6.26 B";
-        
-        // Atur font formal, tegas
-        ctx.font = 'bold 22px "Inter", "Courier New", monospace';
-        ctx.fillStyle = '#ffffff';
-        ctx.shadowColor = 'black';
-        ctx.shadowBlur = 6;
-        // Pojok kiri atas: Hari, Tanggal, Jam
-        ctx.fillText(`${hari}, ${tanggal}  ${jamMenit}`, 20, 50);
-        ctx.font = '16px "Inter", monospace';
-        ctx.fillText(locationText, 20, 90);
-        ctx.fillText(coordText, 20, 120);
-        ctx.fillText(`Kode: ${unique}`, 20, 150);
-        // Watermark brand di pojok kanan bawah
-        ctx.font = 'bold 14px monospace';
-        ctx.fillStyle = '#ffd966';
-        ctx.fillText(brandText, canvas.width - 220, canvas.height - 20);
-        // Logo Bento Coffee (teks)
-        ctx.font = 'bold 24px "Segoe UI", sans-serif';
-        ctx.fillStyle = '#ffaa33';
-        ctx.fillText("☕", canvas.width - 260, canvas.height - 25);
-        
-        canvas.toBlob(blob => {
-            photoBlob = blob;
-            showPreview(blob, 'image/jpeg');
-            saveToHistory(blob, 'image/jpeg');
-        }, 'image/jpeg');
-    }
-    
-    // ==================== Video Recording with Full Watermark ====================
-    let videoCanvasStream = null;
-    let animationId = null;
-    async function startVideoRecording() {
-        if (mediaRecorder && mediaRecorder.state === 'recording') return;
-        recordedChunks = [];
-        const ctx = canvas.getContext('2d');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        const locationText = currentLocation.fullAddress;
-        const coordText = `${currentLocation.latDMS}, ${currentLocation.lngDMS}`;
-        const unique = generateUniqueCode();
-        const brandText = "BENTO COFFEE | Bento SnapMark V1.0/2.6.26 B";
-        
-        function drawVideoFrame() {
-            if (video.paused || video.ended) return;
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const now = new Date();
-            const hari = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'][now.getDay()];
-            const tanggal = now.toLocaleDateString('id-ID').replace(/\//g,'/');
-            const jam = now.toLocaleTimeString('id-ID');
-            ctx.font = 'bold 22px "Inter", monospace';
-            ctx.fillStyle = 'white';
-            ctx.shadowBlur = 6;
-            ctx.fillText(`${hari}, ${tanggal}  ${jam}`, 20, 50);
-            ctx.font = '16px "Inter", monospace';
-            ctx.fillText(locationText, 20, 90);
-            ctx.fillText(coordText, 20, 120);
-            ctx.fillText(`Kode: ${unique}`, 20, 150);
-            ctx.font = 'bold 14px monospace';
-            ctx.fillStyle = '#ffd966';
-            ctx.fillText(brandText, canvas.width - 220, canvas.height - 20);
-            ctx.font = 'bold 24px sans-serif';
-            ctx.fillStyle = '#ffaa33';
-            ctx.fillText("☕", canvas.width - 260, canvas.height - 25);
-            if (mediaRecorder && mediaRecorder.state === 'recording') {
-                animationId = requestAnimationFrame(drawVideoFrame);
-            }
-        }
-        
-        videoCanvasStream = canvas.captureStream(30);
-        let audioStream = null;
-        try {
-            audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            const combined = new MediaStream([...videoCanvasStream.getTracks(), ...audioStream.getTracks()]);
-            mediaRecorder = new MediaRecorder(combined, { mimeType: 'video/mp4' });
-            window.audioStreamToStop = audioStream;
-        } catch (e) {
-            mediaRecorder = new MediaRecorder(videoCanvasStream, { mimeType: 'video/mp4' });
-        }
-        
-        mediaRecorder.ondataavailable = (e) => {
-            if (e.data.size > 0) recordedChunks.push(e.data);
-        };
-        mediaRecorder.onstop = () => {
-            cancelAnimationFrame(animationId);
-            const blob = new Blob(recordedChunks, { type: 'video/mp4' });
-            videoBlob = blob;
-            showPreview(blob, 'video/mp4');
-            saveToHistory(blob, 'video/mp4');
-            if (videoCanvasStream) videoCanvasStream.getTracks().forEach(t => t.stop());
-            if (window.audioStreamToStop) window.audioStreamToStop.getTracks().forEach(t => t.stop());
-            updateCaptureButtonForVideo(false);
-        };
-        mediaRecorder.start(1000);
-        drawVideoFrame();
-        updateCaptureButtonForVideo(true);
-        setTimeout(() => {
-            if (mediaRecorder && mediaRecorder.state === 'recording') stopVideoRecording();
-        }, 30000);
-    }
-    
-    function stopVideoRecording() {
-        if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
-    }
-    
-    function updateCaptureButtonForVideo(recording) {
-        isRecording = recording;
-        captureBtn.textContent = recording ? '⏹️' : (currentMode === 'photo' ? '📸' : '🎥');
-    }
-    
-    // ==================== Timer ====================
-    let timerInterval = null;
-    function startTimer(seconds, callback) {
-        if (timerInterval) clearInterval(timerInterval);
-        if (seconds <= 0) { callback(); return; }
-        let remaining = seconds;
-        countdownDiv.textContent = remaining;
-        countdownDiv.classList.remove('hidden');
-        timerInterval = setInterval(() => {
-            remaining--;
-            if (remaining <= 0) {
-                clearInterval(timerInterval);
-                countdownDiv.classList.add('hidden');
-                callback();
-            } else {
-                countdownDiv.textContent = remaining;
-            }
-        }, 1000);
-    }
-    function cancelTimer() {
-        if (timerInterval) { clearInterval(timerInterval); countdownDiv.classList.add('hidden'); }
-    }
-    
-    // ==================== Preview & Share ====================
-    function showPreview(blob, type) {
-        previewMedia.innerHTML = '';
-        const mediaEl = type.startsWith('image') ? document.createElement('img') : document.createElement('video');
-        mediaEl.src = URL.createObjectURL(blob);
-        if (!type.startsWith('image')) mediaEl.controls = true;
-        previewMedia.appendChild(mediaEl);
-        previewModal.classList.remove('hidden');
-        const newShare = shareBtn.cloneNode(true);
-        const newRetake = retakeBtn.cloneNode(true);
-        shareBtn.parentNode.replaceChild(newShare, shareBtn);
-        retakeBtn.parentNode.replaceChild(newRetake, retakeBtn);
-        newShare.addEventListener('click', () => shareToWA(blob, type === 'image/jpeg' ? 'bento_snap.jpg' : 'bento_video.mp4'));
-        newRetake.addEventListener('click', () => {
-            previewModal.classList.add('hidden');
-            URL.revokeObjectURL(mediaEl.src);
-        });
-    }
-    
-    async function shareToWA(blob, filename) {
-        if (!blob) return;
-        const file = new File([blob], filename, { type: blob.type });
-        if (navigator.share) {
+        // ==================== Kamera & Zoom Dinamis (mendukung pecahan) ====================
+        async function initCamera(facingMode) {
+            if (stream) stream.getTracks().forEach(t => t.stop());
             try {
-                await navigator.share({ files: [file], title: 'Bento SnapMark' });
-                previewModal.classList.add('hidden');
-            } catch (err) { if (err.name !== 'AbortError') alert("Gagal share: "+err.message); }
-        } else {
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = filename;
-            a.click();
-            alert("File diunduh, kirim manual ke WA.");
+                const constraints = { video: { facingMode: { exact: facingMode }, zoom: zoomLevel } };
+                stream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = stream;
+                await video.play();
+                currentFacing = facingMode;
+                const track = stream.getVideoTracks()[0];
+                const caps = track.getCapabilities();
+                if (caps.zoom) {
+                    zoomCapabilities = { min: caps.zoom.min, max: caps.zoom.max, step: caps.zoom.step };
+                    // Daftar nilai zoom yang umum (termasuk pecahan)
+                    const allPossible = [0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.2, 1.5, 1.8, 2, 2.5, 3, 4];
+                    availableZoomValues = allPossible.filter(v => v >= zoomCapabilities.min && v <= zoomCapabilities.max);
+                    if (availableZoomValues.length === 0) availableZoomValues = [1];
+                    renderZoomButtons();
+                } else {
+                    zoomGroup.innerHTML = '<span style="color:#aaa; font-size:12px;">Zoom tidak support</span>';
+                }
+            } catch (err) {
+                const fallback = await navigator.mediaDevices.getUserMedia({ video: true });
+                stream = fallback;
+                video.srcObject = fallback;
+                await video.play();
+            }
         }
-    }
-    
-    // ==================== History (IndexedDB) ====================
-    let db = null;
-    const DB_NAME = 'BentoHistoryV2';
-    const STORE_NAME = 'media';
-    const MAX_ITEMS = 50;
-    function openDB() {
-        return new Promise((resolve, reject) => {
-            const req = indexedDB.open(DB_NAME, 1);
-            req.onerror = () => reject(req.error);
-            req.onsuccess = () => { db = req.result; resolve(db); };
-            req.onupgradeneeded = (e) => {
-                const db = e.target.result;
-                if (!db.objectStoreNames.contains(STORE_NAME)) {
-                    const store = db.createObjectStore(STORE_NAME, { autoIncrement: true });
-                    store.createIndex('timestamp', 'timestamp');
+
+        function renderZoomButtons() {
+            zoomGroup.innerHTML = '';
+            for (let val of availableZoomValues) {
+                const btn = document.createElement('button');
+                btn.className = `zoom-btn ${val === zoomLevel ? 'active' : ''}`;
+                btn.textContent = `${val}x`;
+                btn.dataset.zoom = val;
+                btn.onclick = () => setZoom(val);
+                zoomGroup.appendChild(btn);
+            }
+        }
+
+        async function setZoom(val) {
+            if (!stream) return;
+            const track = stream.getVideoTracks()[0];
+            if (track && track.getCapabilities().zoom) {
+                await track.applyConstraints({ advanced: [{ zoom: val }] });
+                zoomLevel = val;
+                document.querySelectorAll('.zoom-btn').forEach(btn => btn.classList.remove('active'));
+                const activeBtn = [...document.querySelectorAll('.zoom-btn')].find(b => parseFloat(b.dataset.zoom) === val);
+                if (activeBtn) activeBtn.classList.add('active');
+            }
+        }
+
+        function switchCamera() {
+            const newFacing = currentFacing === 'environment' ? 'user' : 'environment';
+            initCamera(newFacing);
+        }
+
+        // ==================== Capture Photo (Watermark: gambar kiri atas, teks kiri bawah) ====================
+        async function capturePhoto() {
+            if (!video.videoWidth) { alert("Kamera belum siap"); return; }
+            const ctx = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // 1. Gambar watermark logo di kiri atas (resize tinggi 50px)
+            if (watermarkImage) {
+                const targetHeight = 50;
+                const ratio = watermarkImage.width / watermarkImage.height;
+                const targetWidth = targetHeight * ratio;
+                ctx.drawImage(watermarkImage, 10, 10, targetWidth, targetHeight);
+            }
+            
+            // 2. Teks watermark di kiri bawah
+            const now = new Date();
+            const days = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+            const hari = days[now.getDay()];
+            const tanggal = now.toLocaleDateString('id-ID', { year:'numeric', month:'2-digit', day:'2-digit' }).replace(/\//g,'/');
+            const jam = now.toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+            const locationText = currentLocation.fullAddress || "Lokasi tidak diketahui";
+            const coordText = `${currentLocation.latDMS}, ${currentLocation.lngDMS}`;
+            const unique = generateUniqueCode();
+            
+            ctx.font = 'bold 18px "Inter", monospace';
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowColor = 'black';
+            ctx.shadowBlur = 4;
+            // Baris 1: Hari, Tanggal, Jam
+            ctx.fillText(`${hari}, ${tanggal}  ${jam}`, 20, canvas.height - 110);
+            // Baris 2: Alamat (bisa multi baris jika terlalu panjang, sederhananya satu baris)
+            ctx.font = '14px "Inter", monospace';
+            ctx.fillText(locationText, 20, canvas.height - 80);
+            // Baris 3: Koordinat
+            ctx.fillText(coordText, 20, canvas.height - 55);
+            // Baris 4: Kode unik
+            ctx.fillText(`Kode: ${unique}`, 20, canvas.height - 30);
+            
+            canvas.toBlob(blob => {
+                photoBlob = blob;
+                showPreview(blob, 'image/jpeg');
+                saveToHistory(blob, 'image/jpeg');
+            }, 'image/jpeg');
+        }
+
+        // ==================== Video Recording (dengan durasi & batas 30 detik) ====================
+        let videoCanvasStream = null;
+        let animationId = null;
+        let videoWarningShown = false;
+
+        function showVideoWarning() {
+            if (!videoWarningShown) {
+                alert("Mode Video: Maksimal rekam 30 detik. Rekam akan berhenti otomatis setelah 30 detik.");
+                videoWarningShown = true;
+            }
+        }
+
+        async function startVideoRecording() {
+            if (mediaRecorder && mediaRecorder.state === 'recording') return;
+            showVideoWarning();
+            recordedChunks = [];
+            const ctx = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            const unique = generateUniqueCode();
+            let recordStartTime = Date.now();
+            videoRecordStartTime = recordStartTime;
+            recordingTimerDiv.classList.remove('hidden');
+            if (videoRecordInterval) clearInterval(videoRecordInterval);
+            videoRecordInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - recordStartTime) / 1000);
+                const secs = elapsed % 60;
+                const mins = Math.floor(elapsed / 60);
+                recordingTimerDiv.textContent = `${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
+                if (elapsed >= 30) {
+                    // stop otomatis setelah 30 detik
+                    if (mediaRecorder && mediaRecorder.state === 'recording') stopVideoRecording();
+                }
+            }, 200);
+            
+            function drawVideoFrame() {
+                if (video.paused || video.ended) return;
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                // Gambar watermark logo (kiri atas)
+                if (watermarkImage) {
+                    const targetHeight = 50;
+                    const ratio = watermarkImage.width / watermarkImage.height;
+                    const targetWidth = targetHeight * ratio;
+                    ctx.drawImage(watermarkImage, 10, 10, targetWidth, targetHeight);
+                }
+                const now = new Date();
+                const days = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+                const hari = days[now.getDay()];
+                const tanggal = now.toLocaleDateString('id-ID').replace(/\//g,'/');
+                const jam = now.toLocaleTimeString('id-ID');
+                const locationText = currentLocation.fullAddress || "Lokasi tidak diketahui";
+                const coordText = `${currentLocation.latDMS}, ${currentLocation.lngDMS}`;
+                ctx.font = 'bold 18px "Inter", monospace';
+                ctx.fillStyle = 'white';
+                ctx.shadowBlur = 4;
+                ctx.fillText(`${hari}, ${tanggal}  ${jam}`, 20, canvas.height - 110);
+                ctx.font = '14px "Inter", monospace';
+                ctx.fillText(locationText, 20, canvas.height - 80);
+                ctx.fillText(coordText, 20, canvas.height - 55);
+                ctx.fillText(`Kode: ${unique}`, 20, canvas.height - 30);
+                if (mediaRecorder && mediaRecorder.state === 'recording') {
+                    animationId = requestAnimationFrame(drawVideoFrame);
+                }
+            }
+            
+            videoCanvasStream = canvas.captureStream(30);
+            let audioStream = null;
+            try {
+                audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const combined = new MediaStream([...videoCanvasStream.getTracks(), ...audioStream.getTracks()]);
+                mediaRecorder = new MediaRecorder(combined, { mimeType: 'video/mp4' });
+                window.audioStreamToStop = audioStream;
+            } catch (e) {
+                mediaRecorder = new MediaRecorder(videoCanvasStream, { mimeType: 'video/mp4' });
+            }
+            
+            mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
+            mediaRecorder.onstop = () => {
+                cancelAnimationFrame(animationId);
+                if (videoRecordInterval) clearInterval(videoRecordInterval);
+                recordingTimerDiv.classList.add('hidden');
+                const blob = new Blob(recordedChunks, { type: 'video/mp4' });
+                videoBlob = blob;
+                showPreview(blob, 'video/mp4');
+                saveToHistory(blob, 'video/mp4');
+                if (videoCanvasStream) videoCanvasStream.getTracks().forEach(t => t.stop());
+                if (window.audioStreamToStop) window.audioStreamToStop.getTracks().forEach(t => t.stop());
+                updateCaptureButtonForVideo(false);
+            };
+            mediaRecorder.start(1000);
+            drawVideoFrame();
+            updateCaptureButtonForVideo(true);
+            // batas maksimal 30 detik (pengaman)
+            setTimeout(() => {
+                if (mediaRecorder && mediaRecorder.state === 'recording') stopVideoRecording();
+            }, 30000);
+        }
+        
+        function stopVideoRecording() {
+            if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
+        }
+        
+        function updateCaptureButtonForVideo(recording) {
+            isRecording = recording;
+            captureBtn.textContent = recording ? '⏹️' : (currentMode === 'photo' ? '📸' : '🎥');
+        }
+
+        // ==================== Timer ====================
+        let timerInterval = null;
+        function startTimer(seconds, callback) {
+            if (timerInterval) clearInterval(timerInterval);
+            if (seconds <= 0) { callback(); return; }
+            let remaining = seconds;
+            countdownDiv.textContent = remaining;
+            countdownDiv.classList.remove('hidden');
+            timerInterval = setInterval(() => {
+                remaining--;
+                if (remaining <= 0) {
+                    clearInterval(timerInterval);
+                    countdownDiv.classList.add('hidden');
+                    callback();
+                } else {
+                    countdownDiv.textContent = remaining;
+                }
+            }, 1000);
+        }
+        function cancelTimer() {
+            if (timerInterval) { clearInterval(timerInterval); countdownDiv.classList.add('hidden'); }
+        }
+
+        // ==================== Preview & Share ====================
+        function showPreview(blob, type) {
+            previewMedia.innerHTML = '';
+            const mediaEl = type.startsWith('image') ? document.createElement('img') : document.createElement('video');
+            mediaEl.src = URL.createObjectURL(blob);
+            if (!type.startsWith('image')) mediaEl.controls = true;
+            previewMedia.appendChild(mediaEl);
+            previewModal.classList.remove('hidden');
+            const newShare = shareBtn.cloneNode(true);
+            const newRetake = retakeBtn.cloneNode(true);
+            shareBtn.parentNode.replaceChild(newShare, shareBtn);
+            retakeBtn.parentNode.replaceChild(newRetake, retakeBtn);
+            newShare.addEventListener('click', () => shareToWA(blob, type === 'image/jpeg' ? 'bento_snap.jpg' : 'bento_video.mp4'));
+            newRetake.addEventListener('click', () => {
+                previewModal.classList.add('hidden');
+                URL.revokeObjectURL(mediaEl.src);
+            });
+        }
+        
+        async function shareToWA(blob, filename) {
+            if (!blob) return;
+            const file = new File([blob], filename, { type: blob.type });
+            if (navigator.share) {
+                try {
+                    await navigator.share({ files: [file], title: 'Bento SnapMark' });
+                    previewModal.classList.add('hidden');
+                } catch (err) { if (err.name !== 'AbortError') alert("Gagal share: "+err.message); }
+            } else {
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = filename;
+                a.click();
+                alert("File diunduh, kirim manual ke WA.");
+            }
+        }
+
+        // ==================== History (IndexedDB) ====================
+        let db = null;
+        const DB_NAME = 'BentoHistoryV3';
+        const STORE_NAME = 'media';
+        const MAX_ITEMS = 50;
+        function openDB() {
+            return new Promise((resolve, reject) => {
+                const req = indexedDB.open(DB_NAME, 1);
+                req.onerror = () => reject(req.error);
+                req.onsuccess = () => { db = req.result; resolve(db); };
+                req.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains(STORE_NAME)) {
+                        const store = db.createObjectStore(STORE_NAME, { autoIncrement: true });
+                        store.createIndex('timestamp', 'timestamp');
+                    }
+                };
+            });
+        }
+        async function saveToHistory(blob, type) {
+            if (!db) await openDB();
+            const tx = db.transaction(STORE_NAME, 'readwrite');
+            const store = tx.objectStore(STORE_NAME);
+            store.add({ blob, type, timestamp: Date.now(), uniqueCode: currentUniqueCode });
+            tx.oncomplete = async () => {
+                const all = await getAllHistory();
+                if (all.length > MAX_ITEMS) {
+                    const toDelete = all.slice(0, all.length - MAX_ITEMS);
+                    const delTx = db.transaction(STORE_NAME, 'readwrite');
+                    const delStore = delTx.objectStore(STORE_NAME);
+                    for (let item of toDelete) delStore.delete(item.id);
                 }
             };
-        });
-    }
-    async function saveToHistory(blob, type) {
-        if (!db) await openDB();
-        const tx = db.transaction(STORE_NAME, 'readwrite');
-        const store = tx.objectStore(STORE_NAME);
-        store.add({ blob, type, timestamp: Date.now(), uniqueCode: currentUniqueCode });
-        tx.oncomplete = async () => {
-            const all = await getAllHistory();
-            if (all.length > MAX_ITEMS) {
-                const toDelete = all.slice(0, all.length - MAX_ITEMS);
-                const delTx = db.transaction(STORE_NAME, 'readwrite');
-                const delStore = delTx.objectStore(STORE_NAME);
-                for (let item of toDelete) delStore.delete(item.id);
+        }
+        async function getAllHistory() {
+            if (!db) await openDB();
+            return new Promise((resolve) => {
+                const tx = db.transaction(STORE_NAME, 'readonly');
+                const store = tx.objectStore(STORE_NAME);
+                const req = store.getAll();
+                req.onsuccess = () => {
+                    let items = req.result.map((item, idx) => ({ ...item, id: idx }));
+                    items.sort((a,b) => a.timestamp - b.timestamp);
+                    resolve(items);
+                };
+                req.onerror = () => resolve([]);
+            });
+        }
+        async function renderHistory() {
+            const items = await getAllHistory();
+            historyGrid.innerHTML = '';
+            if (items.length === 0) {
+                historyGrid.innerHTML = '<div style="color:white; text-align:center; grid-column:span 3">Belum ada foto/video</div>';
+                return;
+            }
+            for (let item of items.slice(-MAX_ITEMS)) {
+                const url = URL.createObjectURL(item.blob);
+                const div = document.createElement('div');
+                div.className = 'history-item';
+                const img = document.createElement('img');
+                img.src = url;
+                img.onclick = () => showPreview(item.blob, item.type);
+                div.appendChild(img);
+                historyGrid.appendChild(div);
+            }
+        }
+
+        // ==================== Event Listeners ====================
+        modePhotoBtn.onclick = () => {
+            currentMode = 'photo';
+            modePhotoBtn.classList.add('active');
+            modeVideoBtn.classList.remove('active');
+            captureBtn.textContent = '📸';
+            if (isRecording) stopVideoRecording();
+            cancelTimer();
+        };
+        modeVideoBtn.onclick = () => {
+            currentMode = 'video';
+            modeVideoBtn.classList.add('active');
+            modePhotoBtn.classList.remove('active');
+            captureBtn.textContent = '🎥';
+            if (isRecording) stopVideoRecording();
+            cancelTimer();
+            showVideoWarning(); // notifikasi batas 30 detik
+        };
+        captureBtn.onclick = () => {
+            cancelTimer();
+            const timerVal = parseInt(timerSelect.value);
+            if (currentMode === 'photo') {
+                startTimer(timerVal, () => capturePhoto());
+            } else {
+                if (!isRecording) startTimer(timerVal, () => startVideoRecording());
+                else stopVideoRecording();
             }
         };
-    }
-    async function getAllHistory() {
-        if (!db) await openDB();
-        return new Promise((resolve) => {
-            const tx = db.transaction(STORE_NAME, 'readonly');
-            const store = tx.objectStore(STORE_NAME);
-            const req = store.getAll();
-            req.onsuccess = () => {
-                let items = req.result.map((item, idx) => ({ ...item, id: idx }));
-                items.sort((a,b) => a.timestamp - b.timestamp);
-                resolve(items);
-            };
-            req.onerror = () => resolve([]);
+        switchCamBtn.onclick = switchCamera;
+        historyBtn.onclick = async () => { await renderHistory(); historyPanel.classList.remove('hidden'); };
+        closeHistory.onclick = () => historyPanel.classList.add('hidden');
+
+        // ==================== Init ====================
+        loadWatermarkImage().then(() => {
+            initCamera('environment');
+            openDB().catch(console.warn);
+            generateUniqueCode();
         });
-    }
-    async function renderHistory() {
-        const items = await getAllHistory();
-        historyGrid.innerHTML = '';
-        if (items.length === 0) {
-            historyGrid.innerHTML = '<div style="color:white; text-align:center; grid-column:span 3">Belum ada foto/video</div>';
-            return;
-        }
-        for (let item of items.slice(-MAX_ITEMS)) {
-            const url = URL.createObjectURL(item.blob);
-            const div = document.createElement('div');
-            div.className = 'history-item';
-            const img = document.createElement('img');
-            img.src = url;
-            img.onclick = () => showPreview(item.blob, item.type);
-            div.appendChild(img);
-            historyGrid.appendChild(div);
-        }
-    }
-    
-    // ==================== Event Listeners ====================
-    modePhotoBtn.onclick = () => {
-        currentMode = 'photo';
-        modePhotoBtn.classList.add('active');
-        modeVideoBtn.classList.remove('active');
-        captureBtn.textContent = '📸';
-        if (isRecording) stopVideoRecording();
-        cancelTimer();
-    };
-    modeVideoBtn.onclick = () => {
-        currentMode = 'video';
-        modeVideoBtn.classList.add('active');
-        modePhotoBtn.classList.remove('active');
-        captureBtn.textContent = '🎥';
-        if (isRecording) stopVideoRecording();
-        cancelTimer();
-    };
-    captureBtn.onclick = () => {
-        cancelTimer();
-        const timerVal = parseInt(timerSelect.value);
-        if (currentMode === 'photo') {
-            startTimer(timerVal, () => capturePhoto());
-        } else {
-            if (!isRecording) startTimer(timerVal, () => startVideoRecording());
-            else stopVideoRecording();
-        }
-    };
-    switchCamBtn.onclick = switchCamera;
-    historyBtn.onclick = async () => { await renderHistory(); historyPanel.classList.remove('hidden'); };
-    closeHistory.onclick = () => historyPanel.classList.add('hidden');
-    
-    // Init
-    initCamera('environment');
-    openDB().catch(console.warn);
-    generateUniqueCode();
+    })();
 </script>
 </body>
 </html>
