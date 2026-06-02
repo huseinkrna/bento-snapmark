@@ -6,6 +6,7 @@
     <title>Bento SnapMark</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1e3c2c">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,600;14..32,700&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -16,7 +17,7 @@
         body {
             background: #000;
             overflow: hidden;
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
         }
         .app {
             position: relative;
@@ -36,159 +37,139 @@
         canvas {
             display: none;
         }
-        /* UI Overlay */
-        .top-info {
+        /* Overlay utama sesuai desain */
+        .overlay-top {
             position: absolute;
             top: 0;
             left: 0;
             right: 0;
             background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
-            padding: 12px 16px 40px 16px;
+            padding: 20px 16px 40px 16px;
             z-index: 10;
             color: white;
-            font-size: 12px;
             text-shadow: 0 1px 2px black;
             pointer-events: none;
         }
-        .datetime {
-            font-size: 14px;
-            font-weight: bold;
-            font-family: monospace;
+        .datetime-large {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
             margin-bottom: 4px;
         }
-        .location {
-            font-size: 11px;
+        .day-date {
+            font-size: 16px;
+            font-weight: 500;
             opacity: 0.9;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 4px;
+            margin-bottom: 12px;
         }
-        .location span {
+        .address-block {
             background: rgba(0,0,0,0.5);
-            padding: 2px 6px;
-            border-radius: 12px;
+            backdrop-filter: blur(4px);
+            border-radius: 16px;
+            padding: 8px 12px;
+            font-size: 12px;
+            font-weight: 500;
+            margin-top: 6px;
+            max-width: 85%;
         }
-        .unique-code {
-            position: absolute;
-            top: 80px;
-            right: 12px;
-            background: rgba(0,0,0,0.6);
-            padding: 4px 8px;
-            border-radius: 20px;
-            font-size: 10px;
+        .address-line {
+            margin-bottom: 2px;
+        }
+        .coordinates {
             font-family: monospace;
-            z-index: 10;
-            color: #0f0;
-            pointer-events: none;
+            font-size: 11px;
+            margin-top: 4px;
+            opacity: 0.9;
         }
+        .brand-watermark {
+            position: absolute;
+            bottom: 16px;
+            left: 16px;
+            z-index: 20;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+            padding: 4px 12px;
+            border-radius: 40px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #ffd966;
+            pointer-events: none;
+            font-family: monospace;
+        }
+        /* Kontrol bawah */
         .controls {
             position: absolute;
             bottom: 0;
             left: 0;
             right: 0;
-            background: rgba(0,0,0,0.8);
-            backdrop-filter: blur(15px);
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(20px);
             padding: 12px 16px 30px 16px;
-            border-radius: 24px 24px 0 0;
+            border-radius: 28px 28px 0 0;
             z-index: 15;
             display: flex;
             flex-direction: column;
             gap: 12px;
+            border-top: 1px solid rgba(255,255,255,0.2);
         }
-        .mode-zoom {
+        .toolbar-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
-        }
-        .mode-buttons {
-            display: flex;
+            flex-wrap: wrap;
             gap: 8px;
-            background: #333;
-            border-radius: 40px;
-            padding: 4px;
         }
-        .mode-btn {
-            background: transparent;
-            border: none;
-            padding: 6px 16px;
-            border-radius: 30px;
-            color: white;
-            font-weight: bold;
-            font-size: 14px;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        .mode-btn.active {
-            background: #2e7d32;
-        }
-        .zoom-buttons {
-            display: flex;
-            gap: 8px;
+        .zoom-group {
             background: #222;
             border-radius: 40px;
             padding: 4px 8px;
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
         }
         .zoom-btn {
-            background: #444;
+            background: #3a3a3a;
             border: none;
-            padding: 4px 12px;
+            padding: 6px 12px;
             border-radius: 30px;
             color: white;
-            font-size: 12px;
-            font-weight: bold;
+            font-weight: 600;
+            font-size: 13px;
             cursor: pointer;
+            transition: 0.1s;
+            min-width: 48px;
         }
         .zoom-btn.active {
             background: #ff5722;
         }
-        .timer-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .zoom-btn.disabled {
+            opacity: 0.4;
+            pointer-events: none;
         }
-        .timer-select {
+        .timer-group {
             background: #222;
             padding: 5px 12px;
             border-radius: 30px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
             color: white;
-            font-size: 14px;
+            font-weight: 500;
         }
-        .timer-select select {
+        .timer-group select {
             background: #444;
             color: white;
             border: none;
             border-radius: 20px;
             padding: 4px 8px;
-            margin-left: 8px;
-        }
-        .capture-row {
-            display: flex;
-            justify-content: center;
-            gap: 30px;
-            align-items: center;
-        }
-        .capture-btn {
-            background: #ff5722;
-            width: 70px;
-            height: 70px;
-            border-radius: 50%;
-            border: none;
-            color: white;
-            font-size: 24px;
             font-weight: bold;
-            cursor: pointer;
-            box-shadow: 0 0 15px rgba(0,0,0,0.5);
-            transition: transform 0.1s;
-        }
-        .capture-btn:active {
-            transform: scale(0.95);
         }
         .icon-btn {
-            background: #444;
+            background: #2a2a2a;
             border: none;
             width: 44px;
             height: 44px;
-            border-radius: 50%;
+            border-radius: 30px;
             color: white;
             font-size: 20px;
             cursor: pointer;
@@ -196,21 +177,55 @@
             align-items: center;
             justify-content: center;
         }
-        .switch-cam, .history-btn {
-            background: #333;
+        .capture-btn {
+            background: #ff5722;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: none;
+            color: white;
+            font-size: 32px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(0,0,0,0.5);
+            transition: 0.05s linear;
         }
+        .capture-btn:active {
+            transform: scale(0.96);
+        }
+        .mode-buttons {
+            display: flex;
+            gap: 12px;
+            background: #222;
+            padding: 4px 12px;
+            border-radius: 40px;
+        }
+        .mode-btn {
+            background: transparent;
+            border: none;
+            padding: 6px 16px;
+            border-radius: 30px;
+            color: white;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .mode-btn.active {
+            background: #2e7d32;
+        }
+        /* Countdown */
         .countdown {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            font-size: 80px;
-            font-weight: bold;
+            font-size: 90px;
+            font-weight: 800;
             color: white;
             text-shadow: 0 0 20px black;
             background: rgba(0,0,0,0.7);
             padding: 20px 40px;
-            border-radius: 60px;
+            border-radius: 80px;
             z-index: 30;
             font-family: monospace;
         }
@@ -221,7 +236,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.95);
+            background: rgba(0,0,0,0.96);
             z-index: 100;
             display: flex;
             justify-content: center;
@@ -253,6 +268,7 @@
             border: none;
             font-weight: bold;
             cursor: pointer;
+            font-size: 16px;
         }
         .share-btn { background: #25D366; color: white; }
         .retake-btn { background: #555; color: white; }
@@ -263,7 +279,7 @@
             left: 0;
             right: 0;
             top: 0;
-            background: rgba(0,0,0,0.95);
+            background: #0a0a0a;
             z-index: 50;
             padding: 20px;
             overflow-y: auto;
@@ -299,36 +315,30 @@
             background: #f44336;
             border: none;
             color: white;
-            padding: 8px 16px;
+            padding: 8px 20px;
             border-radius: 30px;
             cursor: pointer;
-        }
-        .watermark-dev {
-            position: absolute;
-            bottom: 8px;
-            right: 12px;
-            font-size: 9px;
-            color: rgba(255,255,255,0.4);
-            z-index: 20;
-            pointer-events: none;
-            background: none;
-            text-shadow: none;
-        }
-        .hidden {
-            display: none !important;
         }
         .info-banner {
             background: #ff9800;
             color: black;
-            padding: 6px 12px;
+            padding: 8px;
             border-radius: 20px;
-            font-size: 11px;
-            margin-top: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            margin-bottom: 16px;
             text-align: center;
         }
-        .zoom-disable {
-            opacity: 0.5;
-            pointer-events: none;
+        .hidden {
+            display: none !important;
+        }
+        /* Aksesibilitas */
+        button:focus-visible {
+            outline: 2px solid #ffaa00;
+            outline-offset: 2px;
+        }
+        .sr-only {
+            position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden;
         }
     </style>
 </head>
@@ -336,69 +346,66 @@
 <div class="app">
     <video id="video" autoplay playsinline muted></video>
     <canvas id="canvas"></canvas>
-    
-    <!-- Overlay UI -->
-    <div class="top-info">
-        <div class="datetime" id="datetime">--/--/---- --:--:--</div>
-        <div class="location" id="location">
-            <span>📍 Mendapatkan lokasi...</span>
+
+    <!-- Overlay atas (desain ala gambar 3) -->
+    <div class="overlay-top">
+        <div class="datetime-large" id="largeTime">--:--</div>
+        <div class="day-date" id="dayDate">--, --/--/----</div>
+        <div class="address-block" id="addressBlock">
+            <div class="address-line" id="fullAddress">Mendapatkan lokasi...</div>
+            <div class="coordinates" id="coordDisplay">--</div>
         </div>
     </div>
-    <div class="unique-code" id="uniqueCode">Kode: ------</div>
-    
+    <div class="brand-watermark" id="brandWatermark">☕ BENTO COFFEE | Bento SnapMark V1.0/2.6.26 B</div>
+
     <div class="controls">
-        <div class="mode-zoom">
+        <div class="toolbar-row">
             <div class="mode-buttons">
-                <button id="modePhoto" class="mode-btn active">📸 Foto</button>
-                <button id="modeVideo" class="mode-btn">🎥 Video</button>
+                <button id="modePhoto" class="mode-btn active" aria-label="Mode Foto">📸 FOTO</button>
+                <button id="modeVideo" class="mode-btn" aria-label="Mode Video">🎥 VIDEO</button>
             </div>
-            <div class="zoom-buttons" id="zoomContainer">
-                <button data-zoom="0.5" class="zoom-btn">0.5x</button>
-                <button data-zoom="1" class="zoom-btn active">1x</button>
-                <button data-zoom="2" class="zoom-btn">2x</button>
+            <div class="zoom-group" id="zoomGroup">
+                <!-- Tombol zoom dinamis akan diisi JS -->
             </div>
+            <button id="historyBtn" class="icon-btn" aria-label="Riwayat">📁</button>
+            <button id="switchCam" class="icon-btn" aria-label="Ganti Kamera">🔄</button>
         </div>
-        <div class="timer-row">
-            <div class="timer-select">
-                ⏱️ Timer <select id="timerSelect">
-                    <option value="0">Off</option>
-                    <option value="3">3 detik</option>
-                    <option value="5">5 detik</option>
-                    <option value="10">10 detik</option>
+        <div class="toolbar-row" style="justify-content: space-between;">
+            <div class="timer-group">
+                ⏱️ TIMER
+                <select id="timerSelect" aria-label="Timer">
+                    <option value="0">OFF</option>
+                    <option value="3">3 DETIK</option>
+                    <option value="5">5 DETIK</option>
+                    <option value="10">10 DETIK</option>
                 </select>
             </div>
-            <div style="display: flex; gap: 12px;">
-                <button id="historyBtn" class="icon-btn history-btn">📁</button>
-                <button id="switchCam" class="icon-btn switch-cam">🔄</button>
-            </div>
-        </div>
-        <div class="capture-row">
-            <button id="captureBtn" class="capture-btn">📸</button>
+            <button id="captureBtn" class="capture-btn" aria-label="Ambil Foto/Video">📸</button>
+            <div style="width: 44px;"></div> <!-- spacer -->
         </div>
     </div>
-    <div class="watermark-dev">deploy by husein • beta v1.0</div>
-    
+
     <div id="countdownOverlay" class="countdown hidden">3</div>
-    
+
     <!-- Modal Preview -->
     <div id="previewModal" class="modal hidden">
         <div class="modal-content">
             <div id="previewMedia"></div>
             <div class="modal-buttons">
-                <button id="shareBtn" class="share-btn">📤 Kirim ke WA</button>
-                <button id="retakeBtn" class="retake-btn">⟳ Ulang</button>
+                <button id="shareBtn" class="share-btn">📤 KIRIM KE WA</button>
+                <button id="retakeBtn" class="retake-btn">⟳ ULANG</button>
             </div>
         </div>
     </div>
-    
+
     <!-- History Panel -->
     <div id="historyPanel" class="history-panel hidden">
         <div class="history-header">
-            <span>📸 History (maks 50 foto terakhir)</span>
-            <button id="closeHistory" class="close-history">Tutup</button>
+            <span>📸 HISTORY (MAX 50 FOTO/VIDEO)</span>
+            <button id="closeHistory" class="close-history">TUTUP</button>
         </div>
         <div class="info-banner">
-            ⚠️ Foto disimpan lokal di HP. Hanya 50 terakhir. Lebih lama akan terhapus otomatis.
+            ⚠️ Foto/video tersimpan lokal di HP. Hanya 50 terakhir. Lebih lama otomatis terhapus.
         </div>
         <div id="historyGrid" class="history-grid"></div>
     </div>
@@ -408,9 +415,10 @@
     // ==================== DOM Elements ====================
     const video = document.getElementById('video');
     const canvas = document.getElementById('canvas');
-    const datetimeDiv = document.getElementById('datetime');
-    const locationDiv = document.getElementById('location');
-    const uniqueCodeSpan = document.getElementById('uniqueCode');
+    const largeTimeSpan = document.getElementById('largeTime');
+    const dayDateSpan = document.getElementById('dayDate');
+    const fullAddressDiv = document.getElementById('fullAddress');
+    const coordDisplaySpan = document.getElementById('coordDisplay');
     const modePhotoBtn = document.getElementById('modePhoto');
     const modeVideoBtn = document.getElementById('modeVideo');
     const captureBtn = document.getElementById('captureBtn');
@@ -425,11 +433,12 @@
     const historyPanel = document.getElementById('historyPanel');
     const historyGrid = document.getElementById('historyGrid');
     const closeHistory = document.getElementById('closeHistory');
-    const zoomContainer = document.getElementById('zoomContainer');
-    
+    const zoomGroup = document.getElementById('zoomGroup');
+    const brandWatermarkSpan = document.getElementById('brandWatermark');
+
     // ==================== State ====================
     let stream = null;
-    let currentFacing = 'environment'; // 'user' or 'environment'
+    let currentFacing = 'environment';
     let currentMode = 'photo';
     let isRecording = false;
     let mediaRecorder = null;
@@ -437,70 +446,109 @@
     let photoBlob = null;
     let videoBlob = null;
     let currentUniqueCode = '';
-    let currentLocation = { address: '', lat: '', lng: '' };
+    let currentLocation = {
+        fullAddress: '',
+        lat: 0,
+        lng: 0,
+        latDMS: '',
+        lngDMS: ''
+    };
     let zoomLevel = 1;
     let zoomCapabilities = { min: 1, max: 1, step: 0 };
-    
-    // Timestamp interval
-    setInterval(updateDateTime, 1000);
-    updateDateTime();
-    
-    function updateDateTime() {
+    let availableZoomValues = [1];
+
+    // Update jam & hari besar
+    function updateDateTimeUI() {
         const now = new Date();
-        datetimeDiv.textContent = `${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
+        const hours = now.getHours().toString().padStart(2,'0');
+        const minutes = now.getMinutes().toString().padStart(2,'0');
+        largeTimeSpan.textContent = `${hours}.${minutes}`;
+        const days = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+        const dayName = days[now.getDay()];
+        const dateStr = now.toLocaleDateString('id-ID', { year:'numeric', month:'2-digit', day:'2-digit' }).replace(/\//g,'/');
+        dayDateSpan.textContent = `${dayName}, ${dateStr}`;
+        // Update watermark versi dengan tanggal dinamis
+        const today = now.toLocaleDateString('id-ID').replace(/\//g,'.');
+        brandWatermarkSpan.textContent = `☕ BENTO COFFEE | Bento SnapMark V1.0/${today} B`;
     }
-    
-    // ==================== Geolocation ====================
-    function getLocation() {
-        if ("geolocation" in navigator) {
-            navigator.geolocation.getCurrentPosition(async (pos) => {
-                const lat = pos.coords.latitude;
-                const lng = pos.coords.longitude;
-                currentLocation.lat = lat;
-                currentLocation.lng = lng;
-                // Reverse geocoding (gunakan OpenStreetMap Nominatim gratis)
-                try {
-                    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`);
-                    const data = await res.json();
-                    let addr = '';
-                    if (data.address) {
-                        const a = data.address;
-                        addr = `${a.road || ''} ${a.house_number || ''}, ${a.village || a.suburb || ''}, ${a.city || a.town || a.county || ''}, ${a.province || ''}`;
-                    } else {
-                        addr = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-                    }
-                    currentLocation.address = addr;
-                    locationDiv.innerHTML = `<span>📍 ${addr}</span><span>🗺️ ${lat.toFixed(5)}, ${lng.toFixed(5)}</span>`;
-                } catch (e) {
-                    currentLocation.address = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-                    locationDiv.innerHTML = `<span>📍 Koordinat: ${lat.toFixed(5)}, ${lng.toFixed(5)}</span>`;
-                }
-            }, (err) => {
-                console.warn(err);
-                locationDiv.innerHTML = `<span>⚠️ Izin lokasi ditolak, gunakan koordinat default</span>`;
-                currentLocation.address = "Lokasi tidak diketahui";
-                currentLocation.lat = "-7.776441";
-                currentLocation.lng = "110.409210";
-            });
-        } else {
-            locationDiv.innerHTML = `<span>⚠️ GPS tidak support</span>`;
+    setInterval(updateDateTimeUI, 1000);
+    updateDateTimeUI();
+
+    // ==================== Geolocation + Reverse Geocoding (Lengkap) ====================
+    async function getLocationAndAddress() {
+        if (!navigator.geolocation) {
+            fullAddressDiv.textContent = "GPS tidak support";
+            return;
         }
+        navigator.geolocation.getCurrentPosition(async (pos) => {
+            const lat = pos.coords.latitude;
+            const lng = pos.coords.longitude;
+            currentLocation.lat = lat;
+            currentLocation.lng = lng;
+            // Format koordinat DMS
+            currentLocation.latDMS = toDMS(lat, 'lat');
+            currentLocation.lngDMS = toDMS(lng, 'lng');
+            coordDisplaySpan.textContent = `Koordinat : ${currentLocation.latDMS}, ${currentLocation.lngDMS}`;
+            
+            // Reverse geocoding dengan Nominatim
+            try {
+                const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`);
+                const data = await res.json();
+                const addr = data.address;
+                if (addr) {
+                    const road = addr.road || addr.pedestrian || '';
+                    const suburb = addr.suburb || addr.village || addr.neighbourhood || '';
+                    const city = addr.city || addr.town || '';
+                    const county = addr.county || '';
+                    const state = addr.state || addr.province || '';
+                    // Bangun alamat lengkap: Jalan, Kelurahan, Kecamatan, Kabupaten, Provinsi
+                    let full = '';
+                    if (road) full += `${road}`;
+                    if (suburb) full += `, Kelurahan ${suburb}`;
+                    if (city) full += `, Kecamatan ${city}`;
+                    if (county) full += `, Kabupaten ${county}`;
+                    if (state) full += `, ${state}`;
+                    fullAddressDiv.textContent = full || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+                    currentLocation.fullAddress = full;
+                } else {
+                    fullAddressDiv.textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+                    currentLocation.fullAddress = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+                }
+            } catch (e) {
+                fullAddressDiv.textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+                currentLocation.fullAddress = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+            }
+        }, (err) => {
+            console.warn(err);
+            fullAddressDiv.textContent = "Izin lokasi ditolak";
+            coordDisplaySpan.textContent = "Koordinat tidak tersedia";
+        });
     }
-    getLocation();
     
+    function toDMS(coord, type) {
+        const absolute = Math.abs(coord);
+        const degrees = Math.floor(absolute);
+        const minutesNotTrunc = (absolute - degrees) * 60;
+        const minutes = Math.floor(minutesNotTrunc);
+        const seconds = ((minutesNotTrunc - minutes) * 60).toFixed(1);
+        let direction = '';
+        if (type === 'lat') direction = coord >= 0 ? 'N' : 'S';
+        else direction = coord >= 0 ? 'E' : 'W';
+        return `${degrees}°${minutes}'${seconds}"${direction}`;
+    }
+    
+    getLocationAndAddress();
+
     // Generate random unique code
     function generateUniqueCode() {
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
         let code = '';
-        for (let i = 0; i < 8; i++) {
-            code += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
+        for (let i = 0; i < 8; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
         currentUniqueCode = code;
-        uniqueCodeSpan.textContent = `Kode: ${code}`;
         return code;
     }
-    
-    // ==================== Kamera & Zoom ====================
+
+    // ==================== Kamera & Zoom Dinamis ====================
     async function initCamera(facingMode) {
         if (stream) stream.getTracks().forEach(t => t.stop());
         try {
@@ -511,30 +559,19 @@
             video.srcObject = stream;
             await video.play();
             currentFacing = facingMode;
-            // Cek zoom capabilities
             const track = stream.getVideoTracks()[0];
-            const capabilities = track.getCapabilities();
-            if (capabilities.zoom) {
-                zoomCapabilities.min = capabilities.zoom.min;
-                zoomCapabilities.max = capabilities.zoom.max;
-                zoomCapabilities.step = capabilities.zoom.step;
-                // Enable zoom buttons sesuai range
-                document.querySelectorAll('.zoom-btn').forEach(btn => {
-                    const val = parseFloat(btn.dataset.zoom);
-                    if (val >= zoomCapabilities.min && val <= zoomCapabilities.max) {
-                        btn.classList.remove('zoom-disable');
-                        btn.style.opacity = '1';
-                    } else {
-                        btn.classList.add('zoom-disable');
-                        btn.style.opacity = '0.4';
-                    }
-                });
+            const caps = track.getCapabilities();
+            if (caps.zoom) {
+                zoomCapabilities = { min: caps.zoom.min, max: caps.zoom.max, step: caps.zoom.step };
+                // Generate tombol zoom: default nilai umum 0.5,1,2,3,4,8 dst yang dalam range
+                const presets = [0.5, 1, 2, 3, 4, 5, 6, 8, 10];
+                availableZoomValues = presets.filter(v => v >= zoomCapabilities.min && v <= zoomCapabilities.max);
+                if (availableZoomValues.length === 0) availableZoomValues = [1];
+                renderZoomButtons();
             } else {
-                // Zoom tidak support, disable semua
-                document.querySelectorAll('.zoom-btn').forEach(btn => btn.classList.add('zoom-disable'));
+                zoomGroup.innerHTML = '<span style="color:#aaa; font-size:12px;">Zoom tidak support</span>';
             }
         } catch (err) {
-            console.warn(err);
             const fallback = await navigator.mediaDevices.getUserMedia({ video: true });
             stream = fallback;
             video.srcObject = fallback;
@@ -542,12 +579,27 @@
         }
     }
     
-    async function setZoom(zoomValue) {
+    function renderZoomButtons() {
+        zoomGroup.innerHTML = '';
+        for (let val of availableZoomValues) {
+            const btn = document.createElement('button');
+            btn.className = `zoom-btn ${val === zoomLevel ? 'active' : ''}`;
+            btn.textContent = `${val}x`;
+            btn.dataset.zoom = val;
+            btn.onclick = () => setZoom(val);
+            zoomGroup.appendChild(btn);
+        }
+    }
+    
+    async function setZoom(val) {
         if (!stream) return;
         const track = stream.getVideoTracks()[0];
         if (track && track.getCapabilities().zoom) {
-            await track.applyConstraints({ advanced: [{ zoom: zoomValue }] });
-            zoomLevel = zoomValue;
+            await track.applyConstraints({ advanced: [{ zoom: val }] });
+            zoomLevel = val;
+            document.querySelectorAll('.zoom-btn').forEach(btn => btn.classList.remove('active'));
+            const activeBtn = [...document.querySelectorAll('.zoom-btn')].find(b => parseFloat(b.dataset.zoom) === val);
+            if (activeBtn) activeBtn.classList.add('active');
         }
     }
     
@@ -556,28 +608,42 @@
         initCamera(newFacing);
     }
     
-    // ==================== Capture Photo ====================
+    // ==================== Capture Photo with Full Watermark ====================
     async function capturePhoto() {
         if (!video.videoWidth) { alert("Kamera belum siap"); return; }
         const ctx = canvas.getContext('2d');
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        // Draw timestamp + lokasi + kode
-        const now = new Date();
-        const dateTimeStr = `${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
-        const locationText = currentLocation.address || `${currentLocation.lat},${currentLocation.lng}`;
-        const code = generateUniqueCode();
         
-        ctx.font = 'bold 20px "Courier New", monospace';
-        ctx.fillStyle = 'white';
+        const now = new Date();
+        const hari = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'][now.getDay()];
+        const tanggal = now.toLocaleDateString('id-ID', { year:'numeric', month:'2-digit', day:'2-digit' }).replace(/\//g,'/');
+        const jamMenit = now.toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+        const locationText = currentLocation.fullAddress || "Lokasi tidak diketahui";
+        const coordText = `${currentLocation.latDMS}, ${currentLocation.lngDMS}`;
+        const unique = generateUniqueCode();
+        const brandText = "BENTO COFFEE | Bento SnapMark V1.0/2.6.26 B";
+        
+        // Atur font formal, tegas
+        ctx.font = 'bold 22px "Inter", "Courier New", monospace';
+        ctx.fillStyle = '#ffffff';
         ctx.shadowColor = 'black';
-        ctx.shadowBlur = 4;
-        // Pojok kiri bawah
-        ctx.fillText(`${dateTimeStr}`, 20, canvas.height - 70);
-        ctx.font = '14px monospace';
-        ctx.fillText(`${locationText}`, 20, canvas.height - 45);
-        ctx.fillText(`Kode: ${code}`, 20, canvas.height - 25);
+        ctx.shadowBlur = 6;
+        // Pojok kiri atas: Hari, Tanggal, Jam
+        ctx.fillText(`${hari}, ${tanggal}  ${jamMenit}`, 20, 50);
+        ctx.font = '16px "Inter", monospace';
+        ctx.fillText(locationText, 20, 90);
+        ctx.fillText(coordText, 20, 120);
+        ctx.fillText(`Kode: ${unique}`, 20, 150);
+        // Watermark brand di pojok kanan bawah
+        ctx.font = 'bold 14px monospace';
+        ctx.fillStyle = '#ffd966';
+        ctx.fillText(brandText, canvas.width - 220, canvas.height - 20);
+        // Logo Bento Coffee (teks)
+        ctx.font = 'bold 24px "Segoe UI", sans-serif';
+        ctx.fillStyle = '#ffaa33';
+        ctx.fillText("☕", canvas.width - 260, canvas.height - 25);
         
         canvas.toBlob(blob => {
             photoBlob = blob;
@@ -586,7 +652,7 @@
         }, 'image/jpeg');
     }
     
-    // ==================== Video Recording ====================
+    // ==================== Video Recording with Full Watermark ====================
     let videoCanvasStream = null;
     let animationId = null;
     async function startVideoRecording() {
@@ -595,22 +661,32 @@
         const ctx = canvas.getContext('2d');
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
-        const locationText = currentLocation.address || `${currentLocation.lat},${currentLocation.lng}`;
-        const code = generateUniqueCode(); // kode unik untuk video (statis sepanjang rekaman)
+        const locationText = currentLocation.fullAddress;
+        const coordText = `${currentLocation.latDMS}, ${currentLocation.lngDMS}`;
+        const unique = generateUniqueCode();
+        const brandText = "BENTO COFFEE | Bento SnapMark V1.0/2.6.26 B";
         
         function drawVideoFrame() {
             if (video.paused || video.ended) return;
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
             const now = new Date();
-            const dateTimeStr = `${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
-            ctx.font = 'bold 20px "Courier New", monospace';
+            const hari = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'][now.getDay()];
+            const tanggal = now.toLocaleDateString('id-ID').replace(/\//g,'/');
+            const jam = now.toLocaleTimeString('id-ID');
+            ctx.font = 'bold 22px "Inter", monospace';
             ctx.fillStyle = 'white';
-            ctx.shadowColor = 'black';
-            ctx.shadowBlur = 4;
-            ctx.fillText(`${dateTimeStr}`, 20, canvas.height - 70);
-            ctx.font = '14px monospace';
-            ctx.fillText(`${locationText}`, 20, canvas.height - 45);
-            ctx.fillText(`Kode: ${code}`, 20, canvas.height - 25);
+            ctx.shadowBlur = 6;
+            ctx.fillText(`${hari}, ${tanggal}  ${jam}`, 20, 50);
+            ctx.font = '16px "Inter", monospace';
+            ctx.fillText(locationText, 20, 90);
+            ctx.fillText(coordText, 20, 120);
+            ctx.fillText(`Kode: ${unique}`, 20, 150);
+            ctx.font = 'bold 14px monospace';
+            ctx.fillStyle = '#ffd966';
+            ctx.fillText(brandText, canvas.width - 220, canvas.height - 20);
+            ctx.font = 'bold 24px sans-serif';
+            ctx.fillStyle = '#ffaa33';
+            ctx.fillText("☕", canvas.width - 260, canvas.height - 25);
             if (mediaRecorder && mediaRecorder.state === 'recording') {
                 animationId = requestAnimationFrame(drawVideoFrame);
             }
@@ -643,37 +719,25 @@
         mediaRecorder.start(1000);
         drawVideoFrame();
         updateCaptureButtonForVideo(true);
-        // Auto stop setelah 30 detik (aman)
         setTimeout(() => {
             if (mediaRecorder && mediaRecorder.state === 'recording') stopVideoRecording();
         }, 30000);
     }
     
     function stopVideoRecording() {
-        if (mediaRecorder && mediaRecorder.state === 'recording') {
-            mediaRecorder.stop();
-        }
+        if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
     }
     
     function updateCaptureButtonForVideo(recording) {
         isRecording = recording;
-        if (recording) {
-            captureBtn.textContent = '⏹️';
-            captureBtn.style.background = '#f44336';
-        } else {
-            captureBtn.textContent = currentMode === 'photo' ? '📸' : '🎥';
-            captureBtn.style.background = '#ff5722';
-        }
+        captureBtn.textContent = recording ? '⏹️' : (currentMode === 'photo' ? '📸' : '🎥');
     }
     
     // ==================== Timer ====================
     let timerInterval = null;
     function startTimer(seconds, callback) {
         if (timerInterval) clearInterval(timerInterval);
-        if (seconds <= 0) {
-            callback();
-            return;
-        }
+        if (seconds <= 0) { callback(); return; }
         let remaining = seconds;
         countdownDiv.textContent = remaining;
         countdownDiv.classList.remove('hidden');
@@ -688,37 +752,26 @@
             }
         }, 1000);
     }
-    
     function cancelTimer() {
-        if (timerInterval) {
-            clearInterval(timerInterval);
-            countdownDiv.classList.add('hidden');
-        }
+        if (timerInterval) { clearInterval(timerInterval); countdownDiv.classList.add('hidden'); }
     }
     
     // ==================== Preview & Share ====================
     function showPreview(blob, type) {
         previewMedia.innerHTML = '';
-        if (type.startsWith('image')) {
-            const img = document.createElement('img');
-            img.src = URL.createObjectURL(blob);
-            previewMedia.appendChild(img);
-        } else {
-            const vid = document.createElement('video');
-            vid.src = URL.createObjectURL(blob);
-            vid.controls = true;
-            previewMedia.appendChild(vid);
-        }
+        const mediaEl = type.startsWith('image') ? document.createElement('img') : document.createElement('video');
+        mediaEl.src = URL.createObjectURL(blob);
+        if (!type.startsWith('image')) mediaEl.controls = true;
+        previewMedia.appendChild(mediaEl);
         previewModal.classList.remove('hidden');
-        // Refresh button listeners
         const newShare = shareBtn.cloneNode(true);
         const newRetake = retakeBtn.cloneNode(true);
         shareBtn.parentNode.replaceChild(newShare, shareBtn);
         retakeBtn.parentNode.replaceChild(newRetake, retakeBtn);
-        newShare.addEventListener('click', () => shareToWA(blob, type === 'image/jpeg' ? 'snap.jpg' : 'video.mp4'));
+        newShare.addEventListener('click', () => shareToWA(blob, type === 'image/jpeg' ? 'bento_snap.jpg' : 'bento_video.mp4'));
         newRetake.addEventListener('click', () => {
             previewModal.classList.add('hidden');
-            URL.revokeObjectURL(previewMedia.firstChild?.src);
+            URL.revokeObjectURL(mediaEl.src);
         });
     }
     
@@ -729,9 +782,7 @@
             try {
                 await navigator.share({ files: [file], title: 'Bento SnapMark' });
                 previewModal.classList.add('hidden');
-            } catch (err) {
-                if (err.name !== 'AbortError') alert("Gagal share: " + err.message);
-            }
+            } catch (err) { if (err.name !== 'AbortError') alert("Gagal share: "+err.message); }
         } else {
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
@@ -743,19 +794,15 @@
     
     // ==================== History (IndexedDB) ====================
     let db = null;
-    const DB_NAME = 'BentoHistory';
+    const DB_NAME = 'BentoHistoryV2';
     const STORE_NAME = 'media';
     const MAX_ITEMS = 50;
-    
     function openDB() {
         return new Promise((resolve, reject) => {
-            const request = indexedDB.open(DB_NAME, 1);
-            request.onerror = () => reject(request.error);
-            request.onsuccess = () => {
-                db = request.result;
-                resolve(db);
-            };
-            request.onupgradeneeded = (e) => {
+            const req = indexedDB.open(DB_NAME, 1);
+            req.onerror = () => reject(req.error);
+            req.onsuccess = () => { db = req.result; resolve(db); };
+            req.onupgradeneeded = (e) => {
                 const db = e.target.result;
                 if (!db.objectStoreNames.contains(STORE_NAME)) {
                     const store = db.createObjectStore(STORE_NAME, { autoIncrement: true });
@@ -764,43 +811,35 @@
             };
         });
     }
-    
     async function saveToHistory(blob, type) {
         if (!db) await openDB();
-        const timestamp = Date.now();
-        const item = { blob: blob, type: type, timestamp: timestamp, uniqueCode: currentUniqueCode };
         const tx = db.transaction(STORE_NAME, 'readwrite');
         const store = tx.objectStore(STORE_NAME);
-        store.add(item);
+        store.add({ blob, type, timestamp: Date.now(), uniqueCode: currentUniqueCode });
         tx.oncomplete = async () => {
-            // Hapus jika lebih dari MAX_ITEMS
             const all = await getAllHistory();
             if (all.length > MAX_ITEMS) {
                 const toDelete = all.slice(0, all.length - MAX_ITEMS);
-                const deleteTx = db.transaction(STORE_NAME, 'readwrite');
-                const deleteStore = deleteTx.objectStore(STORE_NAME);
-                for (let item of toDelete) {
-                    deleteStore.delete(item.id);
-                }
+                const delTx = db.transaction(STORE_NAME, 'readwrite');
+                const delStore = delTx.objectStore(STORE_NAME);
+                for (let item of toDelete) delStore.delete(item.id);
             }
         };
     }
-    
     async function getAllHistory() {
         if (!db) await openDB();
         return new Promise((resolve) => {
             const tx = db.transaction(STORE_NAME, 'readonly');
             const store = tx.objectStore(STORE_NAME);
-            const request = store.getAll();
-            request.onsuccess = () => {
-                let items = request.result.map((item, idx) => ({ ...item, id: idx }));
+            const req = store.getAll();
+            req.onsuccess = () => {
+                let items = req.result.map((item, idx) => ({ ...item, id: idx }));
                 items.sort((a,b) => a.timestamp - b.timestamp);
                 resolve(items);
             };
-            request.onerror = () => resolve([]);
+            req.onerror = () => resolve([]);
         });
     }
-    
     async function renderHistory() {
         const items = await getAllHistory();
         historyGrid.innerHTML = '';
@@ -814,22 +853,13 @@
             div.className = 'history-item';
             const img = document.createElement('img');
             img.src = url;
-            img.onclick = () => {
-                showPreview(item.blob, item.type);
-            };
+            img.onclick = () => showPreview(item.blob, item.type);
             div.appendChild(img);
             historyGrid.appendChild(div);
         }
     }
     
-    // Event history
-    historyBtn.onclick = async () => {
-        await renderHistory();
-        historyPanel.classList.remove('hidden');
-    };
-    closeHistory.onclick = () => historyPanel.classList.add('hidden');
-    
-    // ==================== Event Listeners Utama ====================
+    // ==================== Event Listeners ====================
     modePhotoBtn.onclick = () => {
         currentMode = 'photo';
         modePhotoBtn.classList.add('active');
@@ -852,25 +882,13 @@
         if (currentMode === 'photo') {
             startTimer(timerVal, () => capturePhoto());
         } else {
-            if (!isRecording) {
-                startTimer(timerVal, () => startVideoRecording());
-            } else {
-                stopVideoRecording();
-            }
+            if (!isRecording) startTimer(timerVal, () => startVideoRecording());
+            else stopVideoRecording();
         }
     };
     switchCamBtn.onclick = switchCamera;
-    
-    // Zoom buttons
-    document.querySelectorAll('.zoom-btn').forEach(btn => {
-        btn.onclick = () => {
-            if (btn.classList.contains('zoom-disable')) return;
-            const val = parseFloat(btn.dataset.zoom);
-            setZoom(val);
-            document.querySelectorAll('.zoom-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-        };
-    });
+    historyBtn.onclick = async () => { await renderHistory(); historyPanel.classList.remove('hidden'); };
+    closeHistory.onclick = () => historyPanel.classList.add('hidden');
     
     // Init
     initCamera('environment');
