@@ -17,7 +17,7 @@
         body {
             background: #000;
             overflow: hidden;
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            font-family: 'Inter', system-ui, sans-serif;
         }
         .app {
             position: relative;
@@ -37,53 +37,48 @@
         canvas {
             display: none;
         }
-        /* Overlay UI (frame) */
-        .overlay-top {
+        /* Overlay UI (live view) */
+        .ui-overlay {
             position: absolute;
             top: 0;
             left: 0;
             right: 0;
-            background: linear-gradient(to bottom, rgba(0,0,0,0.6), transparent);
-            padding: 20px 16px 40px 16px;
-            z-index: 10;
-            color: white;
-            text-shadow: 0 1px 2px black;
+            bottom: 0;
             pointer-events: none;
+            z-index: 10;
         }
-        .datetime-large {
-            font-size: 28px;
-            font-weight: 700;
-            letter-spacing: -0.5px;
-            margin-bottom: 4px;
+        /* Watermark gambar di live view (pojok kiri atas) */
+        .live-watermark {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            max-width: 120px;
+            max-height: 50px;
+            object-fit: contain;
+            filter: drop-shadow(0 1px 2px black);
         }
-        .day-date {
-            font-size: 16px;
-            font-weight: 500;
-            opacity: 0.9;
-            margin-bottom: 12px;
-        }
-        .address-block {
-            background: rgba(0,0,0,0.5);
-            backdrop-filter: blur(4px);
+        /* Info lokasi & waktu di live view (pojok kiri bawah) */
+        .live-info {
+            position: absolute;
+            bottom: 100px;
+            left: 16px;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(8px);
             border-radius: 16px;
             padding: 8px 12px;
-            font-size: 12px;
+            color: white;
+            font-size: 11px;
             font-weight: 500;
-            margin-top: 6px;
-            max-width: 85%;
+            max-width: 70%;
+            pointer-events: none;
+            text-shadow: 0 1px 1px black;
+            font-family: monospace;
         }
-        .address-line {
-            margin-bottom: 2px;
-            line-height: 1.3;
+        .live-info .addr {
+            font-size: 10px;
             word-break: break-word;
         }
-        .coordinates {
-            font-family: monospace;
-            font-size: 11px;
-            margin-top: 4px;
-            opacity: 0.9;
-        }
-        /* Kontrol bawah */
+        /* Tombol dan kontrol bawah (sama seperti sebelumnya) */
         .controls {
             position: absolute;
             bottom: 0;
@@ -93,11 +88,12 @@
             backdrop-filter: blur(20px);
             padding: 12px 16px 30px 16px;
             border-radius: 28px 28px 0 0;
-            z-index: 15;
+            z-index: 20;
             display: flex;
             flex-direction: column;
             gap: 12px;
             border-top: 1px solid rgba(255,255,255,0.2);
+            pointer-events: auto;
         }
         .toolbar-row {
             display: flex;
@@ -125,7 +121,6 @@
             font-weight: 600;
             font-size: 13px;
             cursor: pointer;
-            transition: 0.1s;
             min-width: 48px;
         }
         .zoom-btn.active {
@@ -147,7 +142,6 @@
             border: none;
             border-radius: 20px;
             padding: 4px 8px;
-            font-weight: bold;
         }
         .icon-btn {
             background: #2a2a2a;
@@ -311,11 +305,24 @@
             border-radius: 12px;
             overflow: hidden;
             cursor: pointer;
+            position: relative;
         }
         .history-item img {
             width: 100%;
             aspect-ratio: 1;
             object-fit: cover;
+        }
+        .history-item .download-icon {
+            position: absolute;
+            bottom: 4px;
+            right: 4px;
+            background: rgba(0,0,0,0.6);
+            border-radius: 20px;
+            padding: 4px 8px;
+            font-size: 12px;
+            cursor: pointer;
+            pointer-events: auto;
+            color: white;
         }
         .close-history {
             background: #f44336;
@@ -332,6 +339,16 @@
             outline: 2px solid #ffaa00;
             outline-offset: 2px;
         }
+        .watermark-dev {
+            position: absolute;
+            bottom: 8px;
+            right: 12px;
+            font-size: 10px;
+            color: rgba(255,255,255,0.4);
+            z-index: 20;
+            pointer-events: none;
+            background: none;
+        }
     </style>
 </head>
 <body>
@@ -339,44 +356,46 @@
     <video id="video" autoplay playsinline muted></video>
     <canvas id="canvas"></canvas>
 
-    <!-- Overlay UI (frame) -->
-    <div class="overlay-top">
-        <div class="datetime-large" id="largeTime">--:--</div>
-        <div class="day-date" id="dayDate">--, --/--/----</div>
-        <div class="address-block" id="addressBlock">
-            <div class="address-line" id="fullAddress">Mendapatkan lokasi...</div>
-            <div class="coordinates" id="coordDisplay">--</div>
+    <!-- Overlay live view (UI) -->
+    <div class="ui-overlay">
+        <img id="liveWatermark" class="live-watermark" alt="Bento Logo" style="display:none;">
+        <div class="live-info" id="liveInfo">
+            <div id="liveDateTime">--:--:--</div>
+            <div id="liveAddress" class="addr">Mendapatkan lokasi...</div>
+            <div id="liveCoord" style="font-size:9px;">--</div>
         </div>
     </div>
 
+    <div class="watermark-dev">deploy by husein • beta v1.0</div>
     <div id="recordingTimer" class="recording-indicator hidden">00:00</div>
+    <div id="countdownOverlay" class="countdown hidden">3</div>
 
     <div class="controls">
         <div class="toolbar-row">
             <div class="mode-buttons">
-                <button id="modePhoto" class="mode-btn active" aria-label="Mode Foto">📸 FOTO</button>
-                <button id="modeVideo" class="mode-btn" aria-label="Mode Video">🎥 VIDEO</button>
+                <button id="modePhoto" class="mode-btn active">📸 FOTO</button>
+                <button id="modeVideo" class="mode-btn">🎥 VIDEO</button>
             </div>
             <div class="zoom-group" id="zoomGroup"></div>
-            <button id="historyBtn" class="icon-btn" aria-label="Riwayat">📁</button>
-            <button id="switchCam" class="icon-btn" aria-label="Ganti Kamera">🔄</button>
+            <button id="historyBtn" class="icon-btn">📁</button>
+            <button id="switchCam" class="icon-btn">🔄</button>
         </div>
         <div class="toolbar-row" style="justify-content: space-between;">
             <div class="timer-group">
                 ⏱️ TIMER
-                <select id="timerSelect" aria-label="Timer">
+                <select id="timerSelect">
                     <option value="0">OFF</option>
                     <option value="3">3 DETIK</option>
                     <option value="5">5 DETIK</option>
                     <option value="10">10 DETIK</option>
                 </select>
             </div>
-            <button id="captureBtn" class="capture-btn" aria-label="Ambil Foto/Video">📸</button>
+            <button id="captureBtn" class="capture-btn">📸</button>
             <div style="width: 44px;"></div>
         </div>
     </div>
 
-    <div id="countdownOverlay" class="countdown hidden">3</div>
+    <!-- Modal Preview -->
     <div id="previewModal" class="modal hidden">
         <div class="modal-content">
             <div id="previewMedia"></div>
@@ -386,25 +405,23 @@
             </div>
         </div>
     </div>
+
+    <!-- History Panel -->
     <div id="historyPanel" class="history-panel hidden">
         <div class="history-header">
-            <span>📸 HISTORY (MAX 50 FOTO/VIDEO)</span>
+            <span>📸 HISTORY (MAX 50)</span>
             <button id="closeHistory" class="close-history">TUTUP</button>
         </div>
-        <div class="info-banner">⚠️ Foto/video tersimpan lokal di HP. Hanya 50 terakhir. Lebih lama otomatis terhapus.</div>
+        <div class="info-banner">⚠️ Hanya 50 terakhir. Klik gambar untuk lihat, klik ikon unduh untuk simpan ke galeri.</div>
         <div id="historyGrid" class="history-grid"></div>
     </div>
 </div>
 
 <script>
-    (function(){
+    (function() {
         // ==================== DOM Elements ====================
         const video = document.getElementById('video');
         const canvas = document.getElementById('canvas');
-        const largeTimeSpan = document.getElementById('largeTime');
-        const dayDateSpan = document.getElementById('dayDate');
-        const fullAddressDiv = document.getElementById('fullAddress');
-        const coordDisplaySpan = document.getElementById('coordDisplay');
         const modePhotoBtn = document.getElementById('modePhoto');
         const modeVideoBtn = document.getElementById('modeVideo');
         const captureBtn = document.getElementById('captureBtn');
@@ -421,6 +438,10 @@
         const closeHistory = document.getElementById('closeHistory');
         const zoomGroup = document.getElementById('zoomGroup');
         const recordingTimerDiv = document.getElementById('recordingTimer');
+        const liveWatermarkImg = document.getElementById('liveWatermark');
+        const liveDateTimeDiv = document.getElementById('liveDateTime');
+        const liveAddressDiv = document.getElementById('liveAddress');
+        const liveCoordDiv = document.getElementById('liveCoord');
 
         // ==================== State ====================
         let stream = null;
@@ -433,51 +454,50 @@
         let videoBlob = null;
         let currentUniqueCode = '';
         let currentLocation = {
-            fullAddress: '',
-            lat: 0,
-            lng: 0,
-            latDMS: '',
-            lngDMS: ''
+            fullAddress: 'Mendapatkan lokasi...',
+            lat: 0, lng: 0,
+            latDMS: '', lngDMS: ''
         };
         let zoomLevel = 1;
-        let zoomCapabilities = { min: 1, max: 1, step: 0 };
         let availableZoomValues = [1];
-        let videoRecordStartTime = 0;
-        let videoRecordInterval = null;
         let watermarkImage = null;
+        let videoRecordInterval = null;
+        let videoWarningShown = false;
 
-        // ==================== Watermark Image Load ====================
+        // ==================== Watermark Image ====================
         function loadWatermarkImage() {
             return new Promise((resolve) => {
                 const img = new Image();
                 img.onload = () => {
                     watermarkImage = img;
+                    liveWatermarkImg.src = img.src;
+                    liveWatermarkImg.style.display = 'block';
                     resolve(img);
                 };
                 img.onerror = () => {
                     console.warn("Gambar watermark tidak ditemukan, lanjut tanpa gambar");
                     watermarkImage = null;
+                    liveWatermarkImg.style.display = 'none';
                     resolve(null);
                 };
-                img.src = 'bento-logo.png'; // Ganti dengan nama file watermark Anda
+                img.src = 'bento-logo.png'; // Ganti dengan nama file Anda
             });
         }
 
-        // ==================== Update UI Waktu ====================
-        function updateDateTimeUI() {
+        // ==================== Update Live UI ====================
+        function updateLiveUI() {
             const now = new Date();
-            const hours = now.getHours().toString().padStart(2,'0');
-            const minutes = now.getMinutes().toString().padStart(2,'0');
-            largeTimeSpan.textContent = `${hours}.${minutes}`;
-            const days = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
-            const dayName = days[now.getDay()];
-            const dateStr = now.toLocaleDateString('id-ID', { year:'numeric', month:'2-digit', day:'2-digit' }).replace(/\//g,'/');
-            dayDateSpan.textContent = `${dayName}, ${dateStr}`;
+            const timeStr = now.toLocaleTimeString('id-ID');
+            liveDateTimeDiv.textContent = timeStr;
+            if (currentLocation.fullAddress) {
+                liveAddressDiv.textContent = currentLocation.fullAddress.length > 80 ? currentLocation.fullAddress.substring(0,77)+'...' : currentLocation.fullAddress;
+            }
+            liveCoordDiv.textContent = `${currentLocation.latDMS}, ${currentLocation.lngDMS}`;
         }
-        setInterval(updateDateTimeUI, 1000);
-        updateDateTimeUI();
+        setInterval(updateLiveUI, 1000);
+        updateLiveUI();
 
-        // ==================== Geolocation & Reverse Geocoding (Akurat) ====================
+        // ==================== Geolocation + Reverse Geocoding (Akurat) ====================
         function toDMS(coord, type) {
             const absolute = Math.abs(coord);
             const degrees = Math.floor(absolute);
@@ -490,7 +510,8 @@
 
         async function getLocationAndAddress() {
             if (!navigator.geolocation) {
-                fullAddressDiv.textContent = "GPS tidak support";
+                currentLocation.fullAddress = "GPS tidak support";
+                updateLiveUI();
                 return;
             }
             navigator.geolocation.getCurrentPosition(async (pos) => {
@@ -500,27 +521,24 @@
                 currentLocation.lng = lng;
                 currentLocation.latDMS = toDMS(lat, 'lat');
                 currentLocation.lngDMS = toDMS(lng, 'lng');
-                coordDisplaySpan.textContent = `Koordinat : ${currentLocation.latDMS}, ${currentLocation.lngDMS}`;
                 try {
                     const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1&accept-language=id`);
                     const data = await res.json();
                     let full = data.display_name || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-                    // Potong jika terlalu panjang? biarkan wrap
-                    fullAddressDiv.textContent = full;
                     currentLocation.fullAddress = full;
                 } catch (e) {
-                    fullAddressDiv.textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
                     currentLocation.fullAddress = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
                 }
+                updateLiveUI();
             }, (err) => {
                 console.warn(err);
-                fullAddressDiv.textContent = "Izin lokasi ditolak";
-                coordDisplaySpan.textContent = "Koordinat tidak tersedia";
+                currentLocation.fullAddress = "Izin lokasi ditolak";
+                updateLiveUI();
             });
         }
         getLocationAndAddress();
 
-        // ==================== Generate Unique Code ====================
+        // ==================== Unique Code ====================
         function generateUniqueCode() {
             const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
             let code = '';
@@ -529,7 +547,7 @@
             return code;
         }
 
-        // ==================== Kamera & Zoom Dinamis (mendukung pecahan) ====================
+        // ==================== Kamera & Zoom (maks 2x, tapi support <1x) ====================
         async function initCamera(facingMode) {
             if (stream) stream.getTracks().forEach(t => t.stop());
             try {
@@ -541,10 +559,8 @@
                 const track = stream.getVideoTracks()[0];
                 const caps = track.getCapabilities();
                 if (caps.zoom) {
-                    zoomCapabilities = { min: caps.zoom.min, max: caps.zoom.max, step: caps.zoom.step };
-                    // Daftar nilai zoom yang umum (termasuk pecahan)
-                    const allPossible = [0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.2, 1.5, 1.8, 2, 2.5, 3, 4];
-                    availableZoomValues = allPossible.filter(v => v >= zoomCapabilities.min && v <= zoomCapabilities.max);
+                    const possibleValues = [0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.2, 1.5, 1.8, 2];
+                    availableZoomValues = possibleValues.filter(v => v >= caps.zoom.min && v <= caps.zoom.max && v <= 2);
                     if (availableZoomValues.length === 0) availableZoomValues = [1];
                     renderZoomButtons();
                 } else {
@@ -577,8 +593,8 @@
                 await track.applyConstraints({ advanced: [{ zoom: val }] });
                 zoomLevel = val;
                 document.querySelectorAll('.zoom-btn').forEach(btn => btn.classList.remove('active'));
-                const activeBtn = [...document.querySelectorAll('.zoom-btn')].find(b => parseFloat(b.dataset.zoom) === val);
-                if (activeBtn) activeBtn.classList.add('active');
+                const active = [...document.querySelectorAll('.zoom-btn')].find(b => parseFloat(b.dataset.zoom) === val);
+                if (active) active.classList.add('active');
             }
         }
 
@@ -587,7 +603,7 @@
             initCamera(newFacing);
         }
 
-        // ==================== Capture Photo (Watermark: gambar kiri atas, teks kiri bawah) ====================
+        // ==================== Capture Photo (teks tidak terpotong) ====================
         async function capturePhoto() {
             if (!video.videoWidth) { alert("Kamera belum siap"); return; }
             const ctx = canvas.getContext('2d');
@@ -595,15 +611,15 @@
             canvas.height = video.videoHeight;
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
             
-            // 1. Gambar watermark logo di kiri atas (resize tinggi 50px)
+            // Gambar watermark logo (kiri atas) dengan tinggi 60px
             if (watermarkImage) {
-                const targetHeight = 50;
+                const targetH = 60;
                 const ratio = watermarkImage.width / watermarkImage.height;
-                const targetWidth = targetHeight * ratio;
-                ctx.drawImage(watermarkImage, 10, 10, targetWidth, targetHeight);
+                const targetW = targetH * ratio;
+                ctx.drawImage(watermarkImage, 10, 10, targetW, targetH);
             }
             
-            // 2. Teks watermark di kiri bawah
+            // Teks di kiri bawah, menggunakan font lebih kecil agar muat
             const now = new Date();
             const days = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
             const hari = days[now.getDay()];
@@ -613,35 +629,36 @@
             const coordText = `${currentLocation.latDMS}, ${currentLocation.lngDMS}`;
             const unique = generateUniqueCode();
             
-            ctx.font = 'bold 18px "Inter", monospace';
+            ctx.font = 'bold 20px "Inter", monospace';
             ctx.fillStyle = '#ffffff';
             ctx.shadowColor = 'black';
             ctx.shadowBlur = 4;
-            // Baris 1: Hari, Tanggal, Jam
-            ctx.fillText(`${hari}, ${tanggal}  ${jam}`, 20, canvas.height - 110);
-            // Baris 2: Alamat (bisa multi baris jika terlalu panjang, sederhananya satu baris)
-            ctx.font = '14px "Inter", monospace';
-            ctx.fillText(locationText, 20, canvas.height - 80);
-            // Baris 3: Koordinat
-            ctx.fillText(coordText, 20, canvas.height - 55);
-            // Baris 4: Kode unik
-            ctx.fillText(`Kode: ${unique}`, 20, canvas.height - 30);
+            // Baris 1
+            ctx.fillText(`${hari}, ${tanggal}  ${jam}`, 20, canvas.height - 130);
+            // Baris 2: alamat (potong jika terlalu panjang? Kita biarkan wrap sederhana tidak bisa, jadi kita gunakan font lebih kecil)
+            ctx.font = '15px "Inter", monospace';
+            // Jika alamat terlalu panjang, kita bisa potong tapi tidak ideal. Untuk sementara kita tulis apa adanya.
+            ctx.fillText(locationText, 20, canvas.height - 95);
+            // Baris 3: koordinat
+            ctx.fillText(coordText, 20, canvas.height - 65);
+            // Baris 4: kode
+            ctx.font = 'bold 15px monospace';
+            ctx.fillText(`Kode: ${unique}`, 20, canvas.height - 35);
             
             canvas.toBlob(blob => {
                 photoBlob = blob;
                 showPreview(blob, 'image/jpeg');
                 saveToHistory(blob, 'image/jpeg');
-            }, 'image/jpeg');
+            }, 'image/jpeg', 1);
         }
 
         // ==================== Video Recording (dengan durasi & batas 30 detik) ====================
         let videoCanvasStream = null;
         let animationId = null;
-        let videoWarningShown = false;
 
         function showVideoWarning() {
             if (!videoWarningShown) {
-                alert("Mode Video: Maksimal rekam 30 detik. Rekam akan berhenti otomatis setelah 30 detik.");
+                alert("Mode Video: Maksimal rekam 30 detik. Rekam akan berhenti otomatis.");
                 videoWarningShown = true;
             }
         }
@@ -653,32 +670,26 @@
             const ctx = canvas.getContext('2d');
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
-            
             const unique = generateUniqueCode();
-            let recordStartTime = Date.now();
-            videoRecordStartTime = recordStartTime;
+            let startTime = Date.now();
             recordingTimerDiv.classList.remove('hidden');
             if (videoRecordInterval) clearInterval(videoRecordInterval);
             videoRecordInterval = setInterval(() => {
-                const elapsed = Math.floor((Date.now() - recordStartTime) / 1000);
+                const elapsed = Math.floor((Date.now() - startTime) / 1000);
                 const secs = elapsed % 60;
                 const mins = Math.floor(elapsed / 60);
                 recordingTimerDiv.textContent = `${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
-                if (elapsed >= 30) {
-                    // stop otomatis setelah 30 detik
-                    if (mediaRecorder && mediaRecorder.state === 'recording') stopVideoRecording();
-                }
+                if (elapsed >= 30) stopVideoRecording();
             }, 200);
             
-            function drawVideoFrame() {
+            function drawFrame() {
                 if (video.paused || video.ended) return;
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                // Gambar watermark logo (kiri atas)
                 if (watermarkImage) {
-                    const targetHeight = 50;
+                    const targetH = 60;
                     const ratio = watermarkImage.width / watermarkImage.height;
-                    const targetWidth = targetHeight * ratio;
-                    ctx.drawImage(watermarkImage, 10, 10, targetWidth, targetHeight);
+                    const targetW = targetH * ratio;
+                    ctx.drawImage(watermarkImage, 10, 10, targetW, targetH);
                 }
                 const now = new Date();
                 const days = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
@@ -687,16 +698,17 @@
                 const jam = now.toLocaleTimeString('id-ID');
                 const locationText = currentLocation.fullAddress || "Lokasi tidak diketahui";
                 const coordText = `${currentLocation.latDMS}, ${currentLocation.lngDMS}`;
-                ctx.font = 'bold 18px "Inter", monospace';
+                ctx.font = 'bold 20px "Inter", monospace';
                 ctx.fillStyle = 'white';
                 ctx.shadowBlur = 4;
-                ctx.fillText(`${hari}, ${tanggal}  ${jam}`, 20, canvas.height - 110);
-                ctx.font = '14px "Inter", monospace';
-                ctx.fillText(locationText, 20, canvas.height - 80);
-                ctx.fillText(coordText, 20, canvas.height - 55);
-                ctx.fillText(`Kode: ${unique}`, 20, canvas.height - 30);
+                ctx.fillText(`${hari}, ${tanggal}  ${jam}`, 20, canvas.height - 130);
+                ctx.font = '15px "Inter", monospace';
+                ctx.fillText(locationText, 20, canvas.height - 95);
+                ctx.fillText(coordText, 20, canvas.height - 65);
+                ctx.font = 'bold 15px monospace';
+                ctx.fillText(`Kode: ${unique}`, 20, canvas.height - 35);
                 if (mediaRecorder && mediaRecorder.state === 'recording') {
-                    animationId = requestAnimationFrame(drawVideoFrame);
+                    animationId = requestAnimationFrame(drawFrame);
                 }
             }
             
@@ -710,7 +722,6 @@
             } catch (e) {
                 mediaRecorder = new MediaRecorder(videoCanvasStream, { mimeType: 'video/mp4' });
             }
-            
             mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
             mediaRecorder.onstop = () => {
                 cancelAnimationFrame(animationId);
@@ -725,12 +736,9 @@
                 updateCaptureButtonForVideo(false);
             };
             mediaRecorder.start(1000);
-            drawVideoFrame();
+            drawFrame();
             updateCaptureButtonForVideo(true);
-            // batas maksimal 30 detik (pengaman)
-            setTimeout(() => {
-                if (mediaRecorder && mediaRecorder.state === 'recording') stopVideoRecording();
-            }, 30000);
+            setTimeout(() => { if (mediaRecorder && mediaRecorder.state === 'recording') stopVideoRecording(); }, 30000);
         }
         
         function stopVideoRecording() {
@@ -768,10 +776,10 @@
         // ==================== Preview & Share ====================
         function showPreview(blob, type) {
             previewMedia.innerHTML = '';
-            const mediaEl = type.startsWith('image') ? document.createElement('img') : document.createElement('video');
-            mediaEl.src = URL.createObjectURL(blob);
-            if (!type.startsWith('image')) mediaEl.controls = true;
-            previewMedia.appendChild(mediaEl);
+            const el = type.startsWith('image') ? document.createElement('img') : document.createElement('video');
+            el.src = URL.createObjectURL(blob);
+            if (!type.startsWith('image')) el.controls = true;
+            previewMedia.appendChild(el);
             previewModal.classList.remove('hidden');
             const newShare = shareBtn.cloneNode(true);
             const newRetake = retakeBtn.cloneNode(true);
@@ -780,7 +788,7 @@
             newShare.addEventListener('click', () => shareToWA(blob, type === 'image/jpeg' ? 'bento_snap.jpg' : 'bento_video.mp4'));
             newRetake.addEventListener('click', () => {
                 previewModal.classList.add('hidden');
-                URL.revokeObjectURL(mediaEl.src);
+                URL.revokeObjectURL(el.src);
             });
         }
         
@@ -801,9 +809,9 @@
             }
         }
 
-        // ==================== History (IndexedDB) ====================
+        // ==================== History with Download ====================
         let db = null;
-        const DB_NAME = 'BentoHistoryV3';
+        const DB_NAME = 'BentoHistoryV4';
         const STORE_NAME = 'media';
         const MAX_ITEMS = 50;
         function openDB() {
@@ -814,8 +822,7 @@
                 req.onupgradeneeded = (e) => {
                     const db = e.target.result;
                     if (!db.objectStoreNames.contains(STORE_NAME)) {
-                        const store = db.createObjectStore(STORE_NAME, { autoIncrement: true });
-                        store.createIndex('timestamp', 'timestamp');
+                        db.createObjectStore(STORE_NAME, { autoIncrement: true });
                     }
                 };
             });
@@ -824,7 +831,7 @@
             if (!db) await openDB();
             const tx = db.transaction(STORE_NAME, 'readwrite');
             const store = tx.objectStore(STORE_NAME);
-            store.add({ blob, type, timestamp: Date.now(), uniqueCode: currentUniqueCode });
+            store.add({ blob, type, timestamp: Date.now(), code: currentUniqueCode });
             tx.oncomplete = async () => {
                 const all = await getAllHistory();
                 if (all.length > MAX_ITEMS) {
@@ -863,7 +870,18 @@
                 const img = document.createElement('img');
                 img.src = url;
                 img.onclick = () => showPreview(item.blob, item.type);
+                const downloadSpan = document.createElement('span');
+                downloadSpan.className = 'download-icon';
+                downloadSpan.innerHTML = '⬇️';
+                downloadSpan.onclick = (e) => {
+                    e.stopPropagation();
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = item.type === 'image/jpeg' ? `bento_${item.timestamp}.jpg` : `bento_${item.timestamp}.mp4`;
+                    a.click();
+                };
                 div.appendChild(img);
+                div.appendChild(downloadSpan);
                 historyGrid.appendChild(div);
             }
         }
@@ -884,7 +902,7 @@
             captureBtn.textContent = '🎥';
             if (isRecording) stopVideoRecording();
             cancelTimer();
-            showVideoWarning(); // notifikasi batas 30 detik
+            showVideoWarning();
         };
         captureBtn.onclick = () => {
             cancelTimer();
