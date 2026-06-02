@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <title>Bento SnapMark</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1e3c2c">
+</head>
+<body>
+    <div class="app">
+        <video id="camera" autoplay playsinline muted></video>
+        <canvas id="canvas" style="display: none;"></canvas>
+        
+        <div id="timestamp" class="timestamp">--:--:--</div>
+        <div id="countdown" class="countdown hidden">3</div>
+        
+        <div class="controls">
+            <div class="mode">
+                <button id="modePhoto" class="active">📸 Foto</button>
+                <button id="modeVideo">🎥 Video</button>
+            </div>
+            <div class="timer">
+                <label>⏱️ Timer</label>
+                <select id="timerSelect">
+                    <option value="0">Off</option>
+                    <option value="3">3 detik</option>
+                    <option value="5">5 detik</option>
+                    <option value="10">10 detik</option>
+                </select>
+            </div>
+            <button id="capture" class="capture">Ambil</button>
+            <button id="switchCam" class="switch">🔄 Ganti</button>
+        </div>
+        
+        <div id="preview" class="preview hidden">
+            <img id="previewImg" alt="preview">
+            <div class="preview-buttons">
+                <button id="shareWA">📤 Kirim ke WA</button>
+                <button id="retake">⟳ Ulang</button>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
